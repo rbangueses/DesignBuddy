@@ -201,6 +201,112 @@ describe("useAutosave", () => {
     expect(result.current.status).toBe("saved");
   });
 
+  it("queues the latest scene when edits land during an in-flight save", async () => {
+    const firstWrite = createDeferred<{
+      project: string;
+      name: string;
+      fileName: string;
+      content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
+    }>();
+    const secondWrite = createDeferred<{
+      project: string;
+      name: string;
+      fileName: string;
+      content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
+    }>();
+
+    vi.mocked(designApi.writeDesign)
+      .mockReturnValueOnce(firstWrite.promise)
+      .mockReturnValueOnce(secondWrite.promise);
+
+    const { rerender, result } = renderHook(
+      ({ scene }) =>
+        useAutosave({
+          project: "App",
+          fileName: "Flow.excalidraw",
+          scene,
+          enabled: true,
+        }),
+      {
+        initialProps: {
+          scene: {
+            type: "excalidraw" as const,
+            elements: [] as unknown[],
+            appState: {},
+            files: {},
+          },
+        },
+      },
+    );
+
+    const sceneA = {
+      type: "excalidraw" as const,
+      elements: [{ id: "a" }] as unknown[],
+      appState: {},
+      files: {},
+    };
+
+    rerender({ scene: sceneA });
+
+    let saveResult: Promise<boolean> | undefined;
+
+    await act(async () => {
+      saveResult = result.current.saveNow();
+      await Promise.resolve();
+    });
+
+    expect(designApi.writeDesign).toHaveBeenCalledTimes(1);
+    expect(designApi.writeDesign).toHaveBeenNthCalledWith(
+      1,
+      "App",
+      "Flow.excalidraw",
+      sceneA,
+    );
+    expect(result.current.status).toBe("saving");
+
+    const sceneB = {
+      type: "excalidraw" as const,
+      elements: [{ id: "b" }] as unknown[],
+      appState: {},
+      files: {},
+    };
+
+    rerender({ scene: sceneB });
+
+    expect(result.current.status).toBe("saving");
+
+    await act(async () => {
+      firstWrite.resolve({
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        content: sceneA,
+      });
+      await Promise.resolve();
+    });
+
+    expect(designApi.writeDesign).toHaveBeenCalledTimes(2);
+    expect(designApi.writeDesign).toHaveBeenNthCalledWith(
+      2,
+      "App",
+      "Flow.excalidraw",
+      sceneB,
+    );
+    expect(result.current.status).toBe("saving");
+
+    await act(async () => {
+      secondWrite.resolve({
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        content: sceneB,
+      });
+      await saveResult;
+    });
+
+    expect(result.current.status).toBe("saved");
+  });
+
   afterAll(() => {
     vi.useRealTimers();
   });

@@ -11,6 +11,10 @@ type UseAutosaveArgs = {
   enabled: boolean;
 };
 
+function serializeScene(scene: ExcalidrawScene) {
+  return JSON.stringify(scene);
+}
+
 export function useAutosave({
   project,
   fileName,
@@ -22,8 +26,13 @@ export function useAutosave({
   const lastSaved = useRef<string | null>(null);
   const pendingTimeout = useRef<number | null>(null);
   const inFlightSave = useRef<Promise<boolean> | null>(null);
+  const latestScene = useRef(scene);
   const sceneKey = `${project}/${fileName}`;
   const lastSceneKey = useRef(sceneKey);
+
+  useEffect(() => {
+    latestScene.current = scene;
+  }, [scene]);
 
   const clearPendingTimeout = useCallback(() => {
     if (pendingTimeout.current === null) {
@@ -47,7 +56,7 @@ export function useAutosave({
   }, [clearPendingTimeout, sceneKey]);
 
   const saveNow = useCallback(async () => {
-    if (!scene) {
+    if (!latestScene.current) {
       return false;
     }
 
@@ -62,8 +71,31 @@ export function useAutosave({
 
     const saveRequest = (async () => {
       try {
-        await designApi.writeDesign(project, fileName, scene);
-        lastSaved.current = JSON.stringify(scene);
+        while (latestScene.current) {
+          const sceneToSave = latestScene.current;
+          const serializedScene = serializeScene(sceneToSave);
+
+          if (serializedScene === lastSaved.current) {
+            setStatus("saved");
+            return true;
+          }
+
+          await designApi.writeDesign(project, fileName, sceneToSave);
+          lastSaved.current = serializedScene;
+
+          const newestScene = latestScene.current;
+          if (!newestScene) {
+            break;
+          }
+
+          if (serializeScene(newestScene) === lastSaved.current) {
+            setStatus("saved");
+            return true;
+          }
+
+          setStatus("saving");
+        }
+
         setStatus("saved");
         return true;
       } catch (unknownError) {
@@ -77,14 +109,14 @@ export function useAutosave({
 
     inFlightSave.current = saveRequest;
     return saveRequest;
-  }, [clearPendingTimeout, fileName, project, scene]);
+  }, [clearPendingTimeout, fileName, project]);
 
   useEffect(() => {
     if (!enabled || !scene) {
       return;
     }
 
-    const serialized = JSON.stringify(scene);
+    const serialized = serializeScene(scene);
 
     if (lastSaved.current === null) {
       lastSaved.current = serialized;
@@ -93,6 +125,11 @@ export function useAutosave({
     }
 
     if (serialized === lastSaved.current) {
+      return;
+    }
+
+    if (inFlightSave.current) {
+      setStatus("saving");
       return;
     }
 

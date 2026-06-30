@@ -76,3 +76,29 @@ Tests and commands run:
 
 Concerns:
 - Vite still reports large chunk warnings during build after bundling Excalidraw, but the production build succeeds.
+
+---
+
+Status: complete
+
+Commit:
+- `HEAD` `fix: queue autosave changes during writes`
+
+Files changed:
+- `src/hooks/useAutosave.ts`
+- `src/hooks/useAutosave.test.tsx`
+- `src/components/EditorView.test.tsx`
+
+Tests and commands run:
+- `PATH="/Users/rbangueses/.cargo/bin:/Users/rbangueses/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test:run -- src/hooks/useAutosave.test.tsx src/components/EditorView.test.tsx`
+  - initial red run failed as expected:
+    - `src/hooks/useAutosave.test.tsx`: the hook reported `unsaved` and never issued a follow-up `writeDesign` for scene B after scene A was already saving
+    - `src/components/EditorView.test.tsx`: Back navigation left after the first write instead of waiting for a newer edit to persist
+  - follow-up focused run passed (`2` files, `8` tests)
+- `PATH="/Users/rbangueses/.cargo/bin:/Users/rbangueses/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run test:run -- src/hooks src/components src/App.test.tsx src/lib`
+  - passed (`10` files, `28` tests)
+- `PATH="/Users/rbangueses/.cargo/bin:/Users/rbangueses/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin:$PATH" npm run build`
+  - passed
+
+Concerns:
+- Vite still reports large chunk warnings during build after bundling Excalidraw, but the production build succeeds.
