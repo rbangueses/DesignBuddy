@@ -27,7 +27,13 @@ export function RenameDialog({
       return;
     }
 
-    await onSubmit(name.trim());
+    setError(null);
+
+    try {
+      await onSubmit(name.trim());
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : String(submitError));
+    }
   }
 
   return (

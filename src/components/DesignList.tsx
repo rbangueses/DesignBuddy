@@ -4,6 +4,7 @@ import type { DesignSummary } from "../types/designs";
 type DesignListProps = {
   project: string | null;
   designs: DesignSummary[];
+  totalDesignCount: number;
   filter: string;
   onFilterChange: (filter: string) => void;
   onCreateDesign: () => void;
@@ -13,6 +14,7 @@ type DesignListProps = {
 export function DesignList({
   project,
   designs,
+  totalDesignCount,
   filter,
   onFilterChange,
   onCreateDesign,
@@ -42,7 +44,11 @@ export function DesignList({
         aria-label="Filter designs"
       />
       {designs.length === 0 ? (
-        <div className="empty-state">No designs in this project yet.</div>
+        <div className="empty-state">
+          {filter.trim() && totalDesignCount > 0
+            ? `No designs match "${filter.trim()}".`
+            : "No designs in this project yet."}
+        </div>
       ) : (
         <div className="design-list">
           {designs.map((design) => (

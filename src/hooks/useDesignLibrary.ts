@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { designApi } from "../lib/designApi";
 import type { DesignScene, DesignSummary, ProjectSummary } from "../types/designs";
 
@@ -9,6 +9,7 @@ type UseDesignLibraryResult = {
   selectedProject: string | null;
   filter: string;
   isLoading: boolean;
+  isDesignsLoading: boolean;
   error: string | null;
   setSelectedProject: (project: string) => void;
   setFilter: (filter: string) => void;
@@ -36,7 +37,9 @@ export function useDesignLibrary(): UseDesignLibraryResult {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [filter, setFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+  const [isDesignsLoading, setIsDesignsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const designLoadRequestRef = useRef(0);
 
   const loadProjects = useCallback(async () => {
     setIsLoading(true);
@@ -60,18 +63,38 @@ export function useDesignLibrary(): UseDesignLibraryResult {
   }, []);
 
   const loadDesigns = useCallback(async (project: string | null) => {
+    const requestId = designLoadRequestRef.current + 1;
+    designLoadRequestRef.current = requestId;
+
     if (!project) {
       setDesigns([]);
+      setIsDesignsLoading(false);
       return;
     }
 
     setError(null);
+    setDesigns([]);
+    setIsDesignsLoading(true);
 
     try {
-      setDesigns(await designApi.listDesigns(project));
+      const loadedDesigns = await designApi.listDesigns(project);
+
+      if (designLoadRequestRef.current !== requestId) {
+        return;
+      }
+
+      setDesigns(loadedDesigns);
     } catch (loadError) {
+      if (designLoadRequestRef.current !== requestId) {
+        return;
+      }
+
       setDesigns([]);
       setError(getErrorMessage(loadError));
+    } finally {
+      if (designLoadRequestRef.current === requestId) {
+        setIsDesignsLoading(false);
+      }
     }
   }, []);
 
@@ -92,6 +115,26 @@ export function useDesignLibrary(): UseDesignLibraryResult {
 
     return designs.filter((design) => design.name.toLowerCase().includes(query));
   }, [designs, filter]);
+
+  const selectProject = useCallback((project: string) => {
+    setSelectedProject(project);
+    setDesigns([]);
+    setIsDesignsLoading(true);
+  }, []);
+
+  const runProjectAction = useCallback(
+    async <T,>(action: () => Promise<T>) => {
+      setError(null);
+
+      try {
+        return await action();
+      } catch (actionError) {
+        setError(getErrorMessage(actionError));
+        throw actionError;
+      }
+    },
+    [],
+  );
 
   const withProject = useCallback(
     async <T,>(callback: (project: string) => Promise<T>) => {
@@ -118,35 +161,36 @@ export function useDesignLibrary(): UseDesignLibraryResult {
     selectedProject,
     filter,
     isLoading,
+    isDesignsLoading,
     error,
-    setSelectedProject,
+    setSelectedProject: selectProject,
     setFilter,
     refresh: loadProjects,
-    createProject: async (name) => {
-      setError(null);
-      const project = await designApi.createProject(name);
-      await loadProjects();
-      setSelectedProject(project.name);
-      return project;
-    },
-    renameProject: async (oldName, newName) => {
-      setError(null);
-      const project = await designApi.renameProject(oldName, newName);
-      await loadProjects();
-      setSelectedProject(project.name);
-      return project;
-    },
-    duplicateProject: async (sourceName, targetName) => {
-      setError(null);
-      const project = await designApi.duplicateProject(sourceName, targetName);
-      await loadProjects();
-      return project;
-    },
-    deleteProject: async (name) => {
-      setError(null);
-      await designApi.deleteProject(name);
-      await loadProjects();
-    },
+    createProject: (name) =>
+      runProjectAction(async () => {
+        const project = await designApi.createProject(name);
+        await loadProjects();
+        setSelectedProject(project.name);
+        return project;
+      }),
+    renameProject: (oldName, newName) =>
+      runProjectAction(async () => {
+        const project = await designApi.renameProject(oldName, newName);
+        await loadProjects();
+        setSelectedProject(project.name);
+        return project;
+      }),
+    duplicateProject: (sourceName, targetName) =>
+      runProjectAction(async () => {
+        const project = await designApi.duplicateProject(sourceName, targetName);
+        await loadProjects();
+        return project;
+      }),
+    deleteProject: (name) =>
+      runProjectAction(async () => {
+        await designApi.deleteProject(name);
+        await loadProjects();
+      }),
     createDesign: async (name) =>
       withProject(async (project) => {
         const design = await designApi.createDesign(project, name);

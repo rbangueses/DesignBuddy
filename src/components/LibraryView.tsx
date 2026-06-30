@@ -22,12 +22,13 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
       />
       <main className="library-main">
         {library.error ? <div className="error-banner">{library.error}</div> : null}
-        {library.isLoading ? (
+        {library.isLoading || library.isDesignsLoading ? (
           <section className="empty-state">Loading designs...</section>
         ) : (
           <DesignList
             project={library.selectedProject}
             designs={library.filteredDesigns}
+            totalDesignCount={library.designs.length}
             filter={library.filter}
             onFilterChange={library.setFilter}
             onCreateDesign={() => setDialog("design")}
