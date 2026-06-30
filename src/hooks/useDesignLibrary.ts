@@ -116,11 +116,18 @@ export function useDesignLibrary(): UseDesignLibraryResult {
     return designs.filter((design) => design.name.toLowerCase().includes(query));
   }, [designs, filter]);
 
-  const selectProject = useCallback((project: string) => {
-    setSelectedProject(project);
-    setDesigns([]);
-    setIsDesignsLoading(true);
-  }, []);
+  const selectProject = useCallback(
+    (project: string) => {
+      if (project === selectedProject) {
+        return;
+      }
+
+      setSelectedProject(project);
+      setDesigns([]);
+      setIsDesignsLoading(true);
+    },
+    [selectedProject],
+  );
 
   const runProjectAction = useCallback(
     async <T,>(action: () => Promise<T>) => {

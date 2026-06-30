@@ -74,6 +74,35 @@ describe("useDesignLibrary", () => {
     expect(designApi.listDesigns).toHaveBeenCalledWith("App");
   });
 
+  it("treats reselecting the active project as a no-op", async () => {
+    const appDesigns = [
+      {
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        updatedAtMs: 1,
+      },
+    ];
+
+    vi.mocked(designApi.listProjects).mockResolvedValueOnce([
+      { name: "App", designCount: 1 },
+    ]);
+    vi.mocked(designApi.listDesigns).mockResolvedValueOnce(appDesigns);
+
+    const { result } = renderHook(() => useDesignLibrary());
+
+    await waitFor(() => expect(result.current.designs).toEqual(appDesigns));
+    expect(result.current.isDesignsLoading).toBe(false);
+
+    act(() => {
+      result.current.setSelectedProject("App");
+    });
+
+    expect(result.current.isDesignsLoading).toBe(false);
+    expect(result.current.designs).toEqual(appDesigns);
+    expect(designApi.listDesigns).toHaveBeenCalledTimes(1);
+  });
+
   it("filters designs by case-insensitive query", async () => {
     vi.mocked(designApi.listProjects).mockResolvedValueOnce([
       { name: "App", designCount: 2 },

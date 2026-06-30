@@ -39,6 +39,7 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
       {dialog === "project" ? (
         <RenameDialog
           title="Create project"
+          inputLabel="Project name"
           submitLabel="Create"
           onCancel={() => setDialog(null)}
           onSubmit={async (name) => {
@@ -50,6 +51,7 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
       {dialog === "design" ? (
         <RenameDialog
           title="Create design"
+          inputLabel="Design name"
           submitLabel="Create"
           onCancel={() => setDialog(null)}
           onSubmit={async (name) => {
