@@ -131,4 +131,24 @@ describe("LibraryView", () => {
       expect(library.deleteDesign).toHaveBeenCalledWith("Flow.excalidraw"),
     );
   });
+
+  it("shows a visible error when delete confirmation fails", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    library.deleteProject.mockRejectedValue(new Error("Delete failed."));
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Delete App" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Delete project" });
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(within(dialog).getByText("Delete failed.")).toBeVisible(),
+    );
+    expect(screen.getByRole("dialog", { name: "Delete project" })).toBeVisible();
+    expect(library.deleteProject).toHaveBeenCalledWith("App");
+  });
 });

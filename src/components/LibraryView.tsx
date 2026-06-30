@@ -146,11 +146,9 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
           body={`Delete "${pendingAction.project}"? This action cannot be undone.`}
           confirmLabel="Delete"
           onCancel={closeDialog}
-          onConfirm={() => {
-            void (async () => {
-              await library.deleteProject(pendingAction.project);
-              closeDialog();
-            })();
+          onConfirm={async () => {
+            await library.deleteProject(pendingAction.project);
+            closeDialog();
           }}
         />
       ) : null}
@@ -160,11 +158,9 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
           body={`Delete "${pendingAction.design.name}"? This action cannot be undone.`}
           confirmLabel="Delete"
           onCancel={closeDialog}
-          onConfirm={() => {
-            void (async () => {
-              await library.deleteDesign(pendingAction.design.fileName);
-              closeDialog();
-            })();
+          onConfirm={async () => {
+            await library.deleteDesign(pendingAction.design.fileName);
+            closeDialog();
           }}
         />
       ) : null}

@@ -424,6 +424,38 @@ describe("useDesignLibrary", () => {
     await waitFor(() => expect(result.current.selectedProject).toBe("App Copy"));
   });
 
+  it("preserves the selected project when deleting a different project", async () => {
+    vi.mocked(designApi.listProjects)
+      .mockResolvedValueOnce([
+        { name: "A", designCount: 0 },
+        { name: "B", designCount: 0 },
+        { name: "C", designCount: 0 },
+      ])
+      .mockResolvedValueOnce([
+        { name: "A", designCount: 0 },
+        { name: "C", designCount: 0 },
+      ]);
+    vi.mocked(designApi.listDesigns).mockResolvedValue([]);
+    vi.mocked(designApi.deleteProject).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useDesignLibrary());
+
+    await waitFor(() => expect(result.current.selectedProject).toBe("A"));
+
+    act(() => {
+      result.current.setSelectedProject("C");
+    });
+
+    await waitFor(() => expect(result.current.selectedProject).toBe("C"));
+
+    await act(async () => {
+      await result.current.deleteProject("B");
+    });
+
+    expect(designApi.deleteProject).toHaveBeenCalledWith("B");
+    await waitFor(() => expect(result.current.selectedProject).toBe("C"));
+  });
+
   it("clears stale designs and marks loading when refresh reselects a different project", async () => {
     const siteDesignsRequest = deferredPromise<
       {

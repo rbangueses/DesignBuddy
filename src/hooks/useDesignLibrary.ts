@@ -216,9 +216,15 @@ export function useDesignLibrary(): UseDesignLibraryResult {
       }),
     deleteProject: (name) =>
       runProjectAction(async () => {
+        const shouldResetSelection = selectedProjectRef.current === name;
+        const preferredProject = shouldResetSelection ? undefined : selectedProjectRef.current;
         await designApi.deleteProject(name);
-        transitionSelectedProject(null);
-        await loadProjects();
+
+        if (shouldResetSelection) {
+          transitionSelectedProject(null);
+        }
+
+        await loadProjects(preferredProject);
       }),
     createDesign: async (name) =>
       withProject(async (project) => {
