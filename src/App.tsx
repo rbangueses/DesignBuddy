@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { AppShell } from "./components/AppShell";
+import { EditorView } from "./components/EditorView";
 import { LibraryView } from "./components/LibraryView";
 
 type OpenDesign = {
@@ -13,14 +14,11 @@ export default function App() {
   return (
     <AppShell>
       {openDesign ? (
-        <main className="editor-preview">
-          <button type="button" onClick={() => setOpenDesign(null)}>
-            Back
-          </button>
-          <p>
-            {openDesign.project} / {openDesign.fileName}
-          </p>
-        </main>
+        <EditorView
+          project={openDesign.project}
+          fileName={openDesign.fileName}
+          onBack={() => setOpenDesign(null)}
+        />
       ) : (
         <LibraryView
           onOpenDesign={(project, fileName) => setOpenDesign({ project, fileName })}

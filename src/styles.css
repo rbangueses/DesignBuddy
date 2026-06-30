@@ -164,6 +164,82 @@ input {
   color: #9b1c1c;
 }
 
-.editor-preview {
-  padding: 24px;
+.editor-view {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 56px minmax(0, 1fr);
+}
+
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #deded8;
+  background: #ffffff;
+  padding: 8px 12px;
+}
+
+.editor-title {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.editor-title span {
+  color: #676b73;
+  font-size: 12px;
+}
+
+.editor-title strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-cluster {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.save-status {
+  color: #676b73;
+  font-size: 13px;
+  text-transform: capitalize;
+}
+
+.save-status.error,
+.save-error {
+  color: #9b1c1c;
+}
+
+.save-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #d7d7d0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.canvas-wrap {
+  position: relative;
+  min-height: 0;
+}
+
+.canvas-wrap .excalidraw {
+  height: calc(100vh - 56px);
+}
+
+.save-error {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  border: 1px solid #f0b8b8;
+  border-radius: 6px;
+  background: #fff7f7;
+  padding: 10px 12px;
 }

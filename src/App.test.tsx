@@ -21,6 +21,27 @@ vi.mock("./components/LibraryView", () => ({
   ),
 }));
 
+vi.mock("./components/EditorView", () => ({
+  EditorView: ({
+    project,
+    fileName,
+    onBack,
+  }: {
+    project: string;
+    fileName: string;
+    onBack: () => void;
+  }) => (
+    <section aria-label="Editor">
+      <p>
+        {project} / {fileName}
+      </p>
+      <button type="button" onClick={onBack}>
+        Back
+      </button>
+    </section>
+  ),
+}));
+
 describe("App", () => {
   it("starts in the library and returns there after leaving a design", async () => {
     const user = userEvent.setup();
