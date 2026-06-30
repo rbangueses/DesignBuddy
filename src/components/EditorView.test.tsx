@@ -38,12 +38,16 @@ vi.mock("@excalidraw/excalidraw", () => ({
 
 vi.mock("lucide-react", () => ({
   ArrowLeft: () => <span aria-hidden="true">arrow</span>,
+  Copy: () => <span aria-hidden="true">copy</span>,
+  Pencil: () => <span aria-hidden="true">pencil</span>,
   Save: () => <span aria-hidden="true">save</span>,
 }));
 
 vi.mock("../lib/designApi", () => ({
   designApi: {
+    duplicateDesign: vi.fn(),
     readDesign: vi.fn(),
+    renameDesign: vi.fn(),
     writeDesign: vi.fn(),
   },
 }));
@@ -66,6 +70,8 @@ describe("EditorView", () => {
   beforeEach(() => {
     editCount = 0;
     vi.mocked(designApi.readDesign).mockReset();
+    vi.mocked(designApi.renameDesign).mockReset();
+    vi.mocked(designApi.duplicateDesign).mockReset();
     vi.mocked(designApi.writeDesign).mockReset();
   });
 
@@ -92,7 +98,12 @@ describe("EditorView", () => {
     });
 
     render(
-      <EditorView project="App" fileName="Flow.excalidraw" onBack={onBack} />,
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={onBack}
+        onDesignMoved={vi.fn()}
+      />,
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
@@ -123,7 +134,12 @@ describe("EditorView", () => {
     vi.mocked(designApi.writeDesign).mockRejectedValue(new Error("Disk full"));
 
     render(
-      <EditorView project="App" fileName="Flow.excalidraw" onBack={onBack} />,
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={onBack}
+        onDesignMoved={vi.fn()}
+      />,
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
@@ -157,7 +173,12 @@ describe("EditorView", () => {
     vi.mocked(designApi.writeDesign).mockReturnValue(deferred.promise);
 
     render(
-      <EditorView project="App" fileName="Flow.excalidraw" onBack={onBack} />,
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={onBack}
+        onDesignMoved={vi.fn()}
+      />,
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
@@ -230,7 +251,12 @@ describe("EditorView", () => {
       .mockReturnValueOnce(secondWrite.promise);
 
     render(
-      <EditorView project="App" fileName="Flow.excalidraw" onBack={onBack} />,
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={onBack}
+        onDesignMoved={vi.fn()}
+      />,
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
@@ -297,5 +323,127 @@ describe("EditorView", () => {
     });
 
     await waitFor(() => expect(onBack).toHaveBeenCalledTimes(1));
+  });
+
+  it("flushes edits before renaming and stays on the renamed design", async () => {
+    const user = userEvent.setup();
+    const onDesignMoved = vi.fn();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+    vi.mocked(designApi.writeDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      content: {
+        type: "excalidraw",
+        elements: [{ id: "changed-1" }],
+        appState: { viewBackgroundColor: "#fff" },
+        files: {},
+      },
+    });
+    vi.mocked(designApi.renameDesign).mockResolvedValue({
+      project: "App",
+      name: "Renamed",
+      fileName: "Renamed.excalidraw",
+      updatedAtMs: 2,
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={onDesignMoved}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Edit scene" }));
+    await user.click(screen.getByRole("button", { name: "Rename design" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Rename design" });
+    const nameInput = screen.getByRole("textbox", { name: "Design name" });
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed");
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+
+    await waitFor(() =>
+      expect(designApi.renameDesign).toHaveBeenCalledWith(
+        "App",
+        "Flow.excalidraw",
+        "Renamed",
+      ),
+    );
+    expect(designApi.writeDesign).toHaveBeenCalledWith(
+      "App",
+      "Flow.excalidraw",
+      expect.objectContaining({ elements: [{ id: "changed-1" }] }),
+    );
+    expect(onDesignMoved).toHaveBeenCalledWith(
+      "App",
+      "Renamed.excalidraw",
+      expect.objectContaining({ elements: [{ id: "changed-1" }] }),
+    );
+    expect(dialog).not.toBeInTheDocument();
+  });
+
+  it("duplicates the current design from the editor and opens the duplicate", async () => {
+    const user = userEvent.setup();
+    const onDesignMoved = vi.fn();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+    vi.mocked(designApi.writeDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+    vi.mocked(designApi.duplicateDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow Copy",
+      fileName: "Flow Copy.excalidraw",
+      updatedAtMs: 2,
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={onDesignMoved}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    await user.click(screen.getByRole("button", { name: "Duplicate design" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Duplicate design" });
+    const nameInput = screen.getByRole("textbox", { name: "Design name" });
+    await user.clear(nameInput);
+    await user.type(nameInput, "Flow Copy");
+    await user.click(screen.getByRole("button", { name: "Duplicate" }));
+
+    await waitFor(() =>
+      expect(designApi.duplicateDesign).toHaveBeenCalledWith(
+        "App",
+        "Flow.excalidraw",
+        "Flow Copy",
+      ),
+    );
+    expect(onDesignMoved).toHaveBeenCalledWith(
+      "App",
+      "Flow Copy.excalidraw",
+      expect.objectContaining({ type: "excalidraw" }),
+    );
+    expect(dialog).not.toBeInTheDocument();
   });
 });

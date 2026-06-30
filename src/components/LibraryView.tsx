@@ -7,6 +7,7 @@ import { ProjectSidebar } from "./ProjectSidebar";
 import { RenameDialog } from "./RenameDialog";
 
 type LibraryViewProps = {
+  openError?: string | null;
   onOpenDesign: (project: string, fileName: string) => void;
 };
 
@@ -21,7 +22,7 @@ type PendingAction =
   | { type: "delete-design"; design: DesignSummary }
   | null;
 
-export function LibraryView({ onOpenDesign }: LibraryViewProps) {
+export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
   const library = useDesignLibrary();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
 
@@ -41,6 +42,7 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
         onDeleteProject={(project) => setPendingAction({ type: "delete-project", project })}
       />
       <main className="library-main">
+        {openError ? <div className="error-banner">{openError}</div> : null}
         {library.error ? <div className="error-banner">{library.error}</div> : null}
         {library.isLoading || library.isDesignsLoading ? (
           <section className="empty-state">Loading designs...</section>

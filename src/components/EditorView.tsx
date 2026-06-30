@@ -1,22 +1,39 @@
 import "@excalidraw/excalidraw/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Copy, Pencil, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAutosave } from "../hooks/useAutosave";
 import { designApi } from "../lib/designApi";
 import { isExcalidrawScene } from "../lib/sceneValidation";
 import type { ExcalidrawScene } from "../types/excalidraw";
+import { RenameDialog } from "./RenameDialog";
 
 type EditorViewProps = {
   project: string;
   fileName: string;
+  initialScene?: ExcalidrawScene;
   onBack: () => void;
+  onDesignMoved: (
+    project: string,
+    fileName: string,
+    initialScene: ExcalidrawScene,
+  ) => void;
 };
 
-export function EditorView({ project, fileName, onBack }: EditorViewProps) {
+type PendingAction = "rename" | "duplicate" | null;
+
+export function EditorView({
+  project,
+  fileName,
+  initialScene,
+  onBack,
+  onDesignMoved,
+}: EditorViewProps) {
   const [scene, setScene] = useState<ExcalidrawScene | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isFileActionRunning, setIsFileActionRunning] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
   const autosave = useAutosave({
@@ -32,6 +49,14 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
     setScene(null);
     setLoadError(null);
     setLoadedSceneKey(null);
+
+    if (initialScene) {
+      setScene(initialScene);
+      setLoadedSceneKey(sceneKey);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     async function load() {
       try {
@@ -57,7 +82,7 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
     return () => {
       cancelled = true;
     };
-  }, [fileName, project, sceneKey]);
+  }, [fileName, initialScene, project, sceneKey]);
 
   const title = useMemo(() => fileName.replace(/\.excalidraw$/, ""), [fileName]);
 
@@ -84,6 +109,58 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
     }
   }, [autosave, isLeaving, onBack, scene]);
 
+  const getLatestSavedScene = useCallback(async () => {
+    if (!scene) {
+      throw new Error("Design is still loading.");
+    }
+
+    if (autosave.status === "saved") {
+      return scene;
+    }
+
+    const didSave = await autosave.saveNow();
+
+    if (!didSave) {
+      throw new Error(autosave.error ?? "Save failed.");
+    }
+
+    return scene;
+  }, [autosave, scene]);
+
+  const handleRename = useCallback(
+    async (name: string) => {
+      setIsFileActionRunning(true);
+
+      try {
+        const latestScene = await getLatestSavedScene();
+        const design = await designApi.renameDesign(project, fileName, name);
+        setPendingAction(null);
+        onDesignMoved(design.project, design.fileName, latestScene);
+      } finally {
+        setIsFileActionRunning(false);
+      }
+    },
+    [fileName, getLatestSavedScene, onDesignMoved, project],
+  );
+
+  const handleDuplicate = useCallback(
+    async (name: string) => {
+      setIsFileActionRunning(true);
+
+      try {
+        const latestScene = await getLatestSavedScene();
+        const design = await designApi.duplicateDesign(project, fileName, name);
+        setPendingAction(null);
+        onDesignMoved(design.project, design.fileName, latestScene);
+      } finally {
+        setIsFileActionRunning(false);
+      }
+    },
+    [fileName, getLatestSavedScene, onDesignMoved, project],
+  );
+
+  const isBusy = isLeaving || isFileActionRunning;
+
   return (
     <div className="editor-view">
       <header className="editor-header">
@@ -93,7 +170,7 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
           onClick={() => void handleBack()}
           aria-label="Back to library"
           title="Back to library"
-          disabled={isLeaving}
+          disabled={isBusy}
         >
           <ArrowLeft size={18} />
         </button>
@@ -102,12 +179,32 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
           <strong>{title}</strong>
         </div>
         <div className="save-cluster">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("rename")}
+            aria-label="Rename design"
+            title="Rename design"
+            disabled={isBusy || !scene}
+          >
+            <Pencil size={16} />
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("duplicate")}
+            aria-label="Duplicate design"
+            title="Duplicate design"
+            disabled={isBusy || !scene}
+          >
+            <Copy size={16} />
+          </button>
           <span className={`save-status ${autosave.status}`}>{autosave.status}</span>
           <button
             type="button"
             className="save-button"
             onClick={() => void autosave.saveNow()}
-            disabled={isLeaving || autosave.status === "saving"}
+            disabled={isBusy || autosave.status === "saving"}
           >
             <Save size={16} />
             Save
@@ -137,6 +234,26 @@ export function EditorView({ project, fileName, onBack }: EditorViewProps) {
       ) : (
         <main className="empty-state">Loading editor...</main>
       )}
+      {pendingAction === "rename" ? (
+        <RenameDialog
+          title="Rename design"
+          inputLabel="Design name"
+          initialName={title}
+          submitLabel="Rename"
+          onCancel={() => setPendingAction(null)}
+          onSubmit={handleRename}
+        />
+      ) : null}
+      {pendingAction === "duplicate" ? (
+        <RenameDialog
+          title="Duplicate design"
+          inputLabel="Design name"
+          initialName={`${title} Copy`}
+          submitLabel="Duplicate"
+          onCancel={() => setPendingAction(null)}
+          onSubmit={handleDuplicate}
+        />
+      ) : null}
     </div>
   );
 }
