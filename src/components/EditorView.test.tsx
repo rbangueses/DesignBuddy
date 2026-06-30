@@ -1,9 +1,11 @@
+import { useEffect } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EditorView } from "./EditorView";
 
 let editCount = 0;
+let echoInitialDataOnRender = false;
 
 vi.mock("@excalidraw/excalidraw", () => ({
   Excalidraw: ({
@@ -17,23 +19,33 @@ vi.mock("@excalidraw/excalidraw", () => ({
       files: Record<string, unknown>,
     ) => void;
   }) => (
-    <div>
-      <div>Mock Excalidraw ({initialData.elements?.length ?? 0})</div>
-      <button
-        type="button"
-        onClick={() => {
-          editCount += 1;
-          onChange(
-            [{ id: `changed-${editCount}` }],
-            { viewBackgroundColor: "#fff" },
-            {},
-          );
-        }}
-      >
-        Edit scene
-      </button>
-    </div>
-  ),
+    function MockExcalidraw() {
+      useEffect(() => {
+        if (echoInitialDataOnRender) {
+          onChange(initialData.elements ?? [], {}, {});
+        }
+      }, [initialData, onChange]);
+
+      return (
+        <div>
+          <div>Mock Excalidraw ({initialData.elements?.length ?? 0})</div>
+          <button
+            type="button"
+            onClick={() => {
+              editCount += 1;
+              onChange(
+                [{ id: `changed-${editCount}` }],
+                { viewBackgroundColor: "#fff" },
+                {},
+              );
+            }}
+          >
+            Edit scene
+          </button>
+        </div>
+      );
+    }
+  )(),
 }));
 
 vi.mock("lucide-react", () => ({
@@ -69,6 +81,7 @@ function createDeferred<T>() {
 describe("EditorView", () => {
   beforeEach(() => {
     editCount = 0;
+    echoInitialDataOnRender = false;
     vi.mocked(designApi.readDesign).mockReset();
     vi.mocked(designApi.renameDesign).mockReset();
     vi.mocked(designApi.duplicateDesign).mockReset();
@@ -119,6 +132,29 @@ describe("EditorView", () => {
         elements: [{ id: "changed-1" }],
       }),
     );
+  });
+
+  it("does not loop when Excalidraw echoes the loaded scene on render", async () => {
+    echoInitialDataOnRender = true;
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Mock Excalidraw (0)")).toBeVisible();
+    expect(designApi.writeDesign).not.toHaveBeenCalled();
   });
 
   it("stays in the editor and surfaces save errors when leaving with pending edits", async () => {
