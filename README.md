@@ -35,7 +35,20 @@ Each design is saved as a separate `.excalidraw` file. No cloud sync, account, o
 
 ### macOS
 
-Download the macOS `.dmg`, open it, and drag BanguesesDraw into Applications.
+Build the macOS app locally from a Mac:
+
+```bash
+npm ci
+npm exec tauri build
+```
+
+The DMG is created at:
+
+```text
+src-tauri/target/release/bundle/dmg/BanguesesDraw_0.1.0_aarch64.dmg
+```
+
+Open the `.dmg` and drag BanguesesDraw into Applications.
 
 If macOS warns that the app is from an unidentified developer, right-click the app and choose **Open**. This can happen because the app is not code-signed yet.
 
