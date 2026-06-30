@@ -1,4 +1,4 @@
-import { FolderPlus } from "lucide-react";
+import { Copy, FolderPlus, Pencil, Trash2 } from "lucide-react";
 import type { ProjectSummary } from "../types/designs";
 
 type ProjectSidebarProps = {
@@ -6,6 +6,9 @@ type ProjectSidebarProps = {
   selectedProject: string | null;
   onSelectProject: (project: string) => void;
   onCreateProject: () => void;
+  onRenameProject: (project: string) => void;
+  onDuplicateProject: (project: string) => void;
+  onDeleteProject: (project: string) => void;
 };
 
 export function ProjectSidebar({
@@ -13,6 +16,9 @@ export function ProjectSidebar({
   selectedProject,
   onSelectProject,
   onCreateProject,
+  onRenameProject,
+  onDuplicateProject,
+  onDeleteProject,
 }: ProjectSidebarProps) {
   return (
     <aside className="project-sidebar">
@@ -30,19 +36,50 @@ export function ProjectSidebar({
       </div>
       <nav aria-label="Projects">
         {projects.map((project) => (
-          <button
-            type="button"
+          <div
             key={project.name}
             className={
-              project.name === selectedProject
-                ? "project-button active"
-                : "project-button"
+              project.name === selectedProject ? "project-item active" : "project-item"
             }
-            onClick={() => onSelectProject(project.name)}
           >
-            <span>{project.name}</span>
-            <span>{project.designCount}</span>
-          </button>
+            <button
+              type="button"
+              className="project-button"
+              onClick={() => onSelectProject(project.name)}
+            >
+              <span>{project.name}</span>
+              <span>{project.designCount}</span>
+            </button>
+            <div className="row-actions">
+              <button
+                type="button"
+                className="icon-button row-action-button"
+                onClick={() => onRenameProject(project.name)}
+                aria-label={`Rename ${project.name}`}
+                title={`Rename ${project.name}`}
+              >
+                <Pencil size={16} />
+              </button>
+              <button
+                type="button"
+                className="icon-button row-action-button"
+                onClick={() => onDuplicateProject(project.name)}
+                aria-label={`Duplicate ${project.name}`}
+                title={`Duplicate ${project.name}`}
+              >
+                <Copy size={16} />
+              </button>
+              <button
+                type="button"
+                className="icon-button row-action-button"
+                onClick={() => onDeleteProject(project.name)}
+                aria-label={`Delete ${project.name}`}
+                title={`Delete ${project.name}`}
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
         ))}
       </nav>
     </aside>

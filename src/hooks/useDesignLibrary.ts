@@ -210,12 +210,14 @@ export function useDesignLibrary(): UseDesignLibraryResult {
     duplicateProject: (sourceName, targetName) =>
       runProjectAction(async () => {
         const project = await designApi.duplicateProject(sourceName, targetName);
-        await loadProjects();
+        transitionSelectedProject(project.name);
+        await loadProjects(project.name);
         return project;
       }),
     deleteProject: (name) =>
       runProjectAction(async () => {
         await designApi.deleteProject(name);
+        transitionSelectedProject(null);
         await loadProjects();
       }),
     createDesign: async (name) =>

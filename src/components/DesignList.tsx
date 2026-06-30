@@ -1,4 +1,4 @@
-import { FilePlus2 } from "lucide-react";
+import { Copy, FilePlus2, Pencil, Trash2 } from "lucide-react";
 import type { DesignSummary } from "../types/designs";
 
 type DesignListProps = {
@@ -8,6 +8,9 @@ type DesignListProps = {
   filter: string;
   onFilterChange: (filter: string) => void;
   onCreateDesign: () => void;
+  onRenameDesign: (design: DesignSummary) => void;
+  onDuplicateDesign: (design: DesignSummary) => void;
+  onDeleteDesign: (design: DesignSummary) => void;
   onOpenDesign: (project: string, fileName: string) => void;
 };
 
@@ -18,6 +21,9 @@ export function DesignList({
   filter,
   onFilterChange,
   onCreateDesign,
+  onRenameDesign,
+  onDuplicateDesign,
+  onDeleteDesign,
   onOpenDesign,
 }: DesignListProps) {
   if (!project) {
@@ -52,15 +58,57 @@ export function DesignList({
       ) : (
         <div className="design-list">
           {designs.map((design) => (
-            <button
-              type="button"
-              className="design-row"
+            <div
               key={design.fileName}
-              onClick={() => onOpenDesign(design.project, design.fileName)}
+              className="design-row"
             >
-              <span>{design.name}</span>
-              <span>{new Date(Number(design.updatedAtMs)).toLocaleString()}</span>
-            </button>
+              <button
+                type="button"
+                className="design-open-button"
+                onClick={() => onOpenDesign(design.project, design.fileName)}
+              >
+                <span>{design.name}</span>
+                <span>{new Date(Number(design.updatedAtMs)).toLocaleString()}</span>
+              </button>
+              <div className="row-actions">
+                <button
+                  type="button"
+                  className="icon-button row-action-button"
+                  aria-label={`Rename ${design.name}`}
+                  title={`Rename ${design.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onRenameDesign(design);
+                  }}
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button row-action-button"
+                  aria-label={`Duplicate ${design.name}`}
+                  title={`Duplicate ${design.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDuplicateDesign(design);
+                  }}
+                >
+                  <Copy size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button row-action-button"
+                  aria-label={`Delete ${design.name}`}
+                  title={`Delete ${design.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onDeleteDesign(design);
+                  }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
           ))}
         </div>
       )}

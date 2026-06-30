@@ -69,4 +69,66 @@ describe("LibraryView", () => {
 
     await waitFor(() => expect(library.createProject).toHaveBeenCalledWith("Ideas"));
   });
+
+  it("opens duplicate and delete flows for projects and designs", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    library.duplicateProject.mockResolvedValue({ name: "App Copy", designCount: 1 });
+    library.deleteProject.mockResolvedValue(undefined);
+    library.duplicateDesign.mockResolvedValue({
+      project: "App",
+      name: "Flow Copy",
+      fileName: "Flow Copy.excalidraw",
+      updatedAtMs: 2,
+    });
+    library.deleteDesign.mockResolvedValue(undefined);
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Duplicate App" }));
+
+    let dialog = screen.getByRole("dialog", { name: "Duplicate project" });
+    let nameInput = within(dialog).getByRole("textbox", { name: "Project name" });
+    await user.clear(nameInput);
+    await user.type(nameInput, "App Copy");
+    await user.click(within(dialog).getByRole("button", { name: "Duplicate" }));
+
+    await waitFor(() =>
+      expect(library.duplicateProject).toHaveBeenCalledWith("App", "App Copy"),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete App" }));
+
+    dialog = screen.getByRole("dialog", { name: "Delete project" });
+    expect(within(dialog).getByText(/App/)).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(library.deleteProject).toHaveBeenCalledWith("App"));
+
+    await user.click(screen.getByRole("button", { name: "Duplicate Flow" }));
+
+    dialog = screen.getByRole("dialog", { name: "Duplicate design" });
+    nameInput = within(dialog).getByRole("textbox", { name: "Design name" });
+    await user.clear(nameInput);
+    await user.type(nameInput, "Flow Copy");
+    await user.click(within(dialog).getByRole("button", { name: "Duplicate" }));
+
+    await waitFor(() =>
+      expect(library.duplicateDesign).toHaveBeenCalledWith(
+        "Flow.excalidraw",
+        "Flow Copy",
+      ),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Delete Flow" }));
+
+    dialog = screen.getByRole("dialog", { name: "Delete design" });
+    expect(within(dialog).getByText(/Flow/)).toBeVisible();
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() =>
+      expect(library.deleteDesign).toHaveBeenCalledWith("Flow.excalidraw"),
+    );
+  });
 });

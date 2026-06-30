@@ -67,7 +67,7 @@ input {
 }
 
 .project-button,
-.design-row {
+.design-open-button {
   width: 100%;
   border: 0;
   border-radius: 6px;
@@ -81,10 +81,36 @@ input {
   cursor: pointer;
 }
 
-.project-button.active,
-.project-button:hover,
+.project-item,
+.design-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+}
+
+.project-item.active,
+.project-item:hover,
 .design-row:hover {
   background: #ecebe4;
+}
+
+.project-button,
+.design-open-button {
+  flex: 1;
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.row-action-button {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
 }
 
 .library-main {
@@ -125,6 +151,10 @@ input {
 
 .design-row:last-child {
   border-bottom: 0;
+}
+
+.design-open-button {
+  border-radius: 0;
 }
 
 .empty-state,

@@ -370,6 +370,60 @@ describe("useDesignLibrary", () => {
     );
   });
 
+  it("duplicates and deletes designs through the API", async () => {
+    vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "App", designCount: 1 }]);
+    vi.mocked(designApi.listDesigns).mockResolvedValue([
+      { project: "App", name: "Flow", fileName: "Flow.excalidraw", updatedAtMs: 1 },
+    ]);
+    vi.mocked(designApi.duplicateDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow Copy",
+      fileName: "Flow Copy.excalidraw",
+      updatedAtMs: 2,
+    });
+    vi.mocked(designApi.deleteDesign).mockResolvedValue();
+
+    const { result } = renderHook(() => useDesignLibrary());
+    await waitFor(() => expect(result.current.selectedProject).toBe("App"));
+
+    await act(async () => {
+      await result.current.duplicateDesign("Flow.excalidraw", "Flow Copy");
+      await result.current.deleteDesign("Flow.excalidraw");
+    });
+
+    expect(designApi.duplicateDesign).toHaveBeenCalledWith(
+      "App",
+      "Flow.excalidraw",
+      "Flow Copy",
+    );
+    expect(designApi.deleteDesign).toHaveBeenCalledWith("App", "Flow.excalidraw");
+  });
+
+  it("selects the duplicated project after the API succeeds", async () => {
+    vi.mocked(designApi.listProjects)
+      .mockResolvedValueOnce([{ name: "App", designCount: 1 }])
+      .mockResolvedValueOnce([
+        { name: "App", designCount: 1 },
+        { name: "App Copy", designCount: 1 },
+      ]);
+    vi.mocked(designApi.listDesigns).mockResolvedValue([]);
+    vi.mocked(designApi.duplicateProject).mockResolvedValue({
+      name: "App Copy",
+      designCount: 1,
+    });
+
+    const { result } = renderHook(() => useDesignLibrary());
+
+    await waitFor(() => expect(result.current.selectedProject).toBe("App"));
+
+    await act(async () => {
+      await result.current.duplicateProject("App", "App Copy");
+    });
+
+    expect(designApi.duplicateProject).toHaveBeenCalledWith("App", "App Copy");
+    await waitFor(() => expect(result.current.selectedProject).toBe("App Copy"));
+  });
+
   it("clears stale designs and marks loading when refresh reselects a different project", async () => {
     const siteDesignsRequest = deferredPromise<
       {

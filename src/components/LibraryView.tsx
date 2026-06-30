@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useDesignLibrary } from "../hooks/useDesignLibrary";
+import type { DesignSummary } from "../types/designs";
+import { ConfirmDialog } from "./ConfirmDialog";
 import { DesignList } from "./DesignList";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { RenameDialog } from "./RenameDialog";
@@ -8,9 +10,22 @@ type LibraryViewProps = {
   onOpenDesign: (project: string, fileName: string) => void;
 };
 
+type PendingAction =
+  | { type: "create-project" }
+  | { type: "create-design" }
+  | { type: "rename-project"; project: string }
+  | { type: "duplicate-project"; project: string }
+  | { type: "delete-project"; project: string }
+  | { type: "rename-design"; design: DesignSummary }
+  | { type: "duplicate-design"; design: DesignSummary }
+  | { type: "delete-design"; design: DesignSummary }
+  | null;
+
 export function LibraryView({ onOpenDesign }: LibraryViewProps) {
   const library = useDesignLibrary();
-  const [dialog, setDialog] = useState<"project" | "design" | null>(null);
+  const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+
+  const closeDialog = () => setPendingAction(null);
 
   return (
     <div className="library-view">
@@ -18,7 +33,12 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
         projects={library.projects}
         selectedProject={library.selectedProject}
         onSelectProject={library.setSelectedProject}
-        onCreateProject={() => setDialog("project")}
+        onCreateProject={() => setPendingAction({ type: "create-project" })}
+        onRenameProject={(project) => setPendingAction({ type: "rename-project", project })}
+        onDuplicateProject={(project) =>
+          setPendingAction({ type: "duplicate-project", project })
+        }
+        onDeleteProject={(project) => setPendingAction({ type: "delete-project", project })}
       />
       <main className="library-main">
         {library.error ? <div className="error-banner">{library.error}</div> : null}
@@ -31,35 +51,120 @@ export function LibraryView({ onOpenDesign }: LibraryViewProps) {
             totalDesignCount={library.designs.length}
             filter={library.filter}
             onFilterChange={library.setFilter}
-            onCreateDesign={() => setDialog("design")}
+            onCreateDesign={() => setPendingAction({ type: "create-design" })}
+            onRenameDesign={(design) => setPendingAction({ type: "rename-design", design })}
+            onDuplicateDesign={(design) =>
+              setPendingAction({ type: "duplicate-design", design })
+            }
+            onDeleteDesign={(design) => setPendingAction({ type: "delete-design", design })}
             onOpenDesign={onOpenDesign}
           />
         )}
       </main>
-      {dialog === "project" ? (
+      {pendingAction?.type === "create-project" ? (
         <RenameDialog
           title="Create project"
           inputLabel="Project name"
           submitLabel="Create"
-          onCancel={() => setDialog(null)}
+          onCancel={closeDialog}
           onSubmit={async (name) => {
             await library.createProject(name);
-            setDialog(null);
+            closeDialog();
           }}
         />
       ) : null}
-      {dialog === "design" ? (
+      {pendingAction?.type === "create-design" ? (
         <RenameDialog
           title="Create design"
           inputLabel="Design name"
           submitLabel="Create"
-          onCancel={() => setDialog(null)}
+          onCancel={closeDialog}
           onSubmit={async (name) => {
             const design = await library.createDesign(name);
-            setDialog(null);
+            closeDialog();
             if (design) {
               onOpenDesign(design.project, design.fileName);
             }
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "rename-project" ? (
+        <RenameDialog
+          title="Rename project"
+          inputLabel="Project name"
+          initialName={pendingAction.project}
+          submitLabel="Rename"
+          onCancel={closeDialog}
+          onSubmit={async (name) => {
+            await library.renameProject(pendingAction.project, name);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "duplicate-project" ? (
+        <RenameDialog
+          title="Duplicate project"
+          inputLabel="Project name"
+          initialName={`${pendingAction.project} Copy`}
+          submitLabel="Duplicate"
+          onCancel={closeDialog}
+          onSubmit={async (name) => {
+            await library.duplicateProject(pendingAction.project, name);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "rename-design" ? (
+        <RenameDialog
+          title="Rename design"
+          inputLabel="Design name"
+          initialName={pendingAction.design.name}
+          submitLabel="Rename"
+          onCancel={closeDialog}
+          onSubmit={async (name) => {
+            await library.renameDesign(pendingAction.design.fileName, name);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "duplicate-design" ? (
+        <RenameDialog
+          title="Duplicate design"
+          inputLabel="Design name"
+          initialName={`${pendingAction.design.name} Copy`}
+          submitLabel="Duplicate"
+          onCancel={closeDialog}
+          onSubmit={async (name) => {
+            await library.duplicateDesign(pendingAction.design.fileName, name);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "delete-project" ? (
+        <ConfirmDialog
+          title="Delete project"
+          body={`Delete "${pendingAction.project}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onCancel={closeDialog}
+          onConfirm={() => {
+            void (async () => {
+              await library.deleteProject(pendingAction.project);
+              closeDialog();
+            })();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "delete-design" ? (
+        <ConfirmDialog
+          title="Delete design"
+          body={`Delete "${pendingAction.design.name}"? This action cannot be undone.`}
+          confirmLabel="Delete"
+          onCancel={closeDialog}
+          onConfirm={() => {
+            void (async () => {
+              await library.deleteDesign(pendingAction.design.fileName);
+              closeDialog();
+            })();
           }}
         />
       ) : null}
