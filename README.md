@@ -14,12 +14,13 @@ BanguesesDraw is a local-first desktop design manager powered by Excalidraw. It 
 
 ## Screenshots
 
-Screenshots can be added under `docs/screenshots/`:
+### Project Library
 
-- `docs/screenshots/library.png`
-- `docs/screenshots/editor.png`
+![BanguesesDraw project library](docs/screenshots/main%20ui.png)
 
-Once those files are added, this section can render the project library and drawing editor views directly in the README.
+### Drawing Editor
+
+![BanguesesDraw drawing editor](docs/screenshots/sample%20drawing.png)
 
 ## Local Storage
 
