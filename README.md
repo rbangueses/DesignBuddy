@@ -41,9 +41,9 @@ BanguesesDraw can store Mermaid flowcharts locally as `.mmd` files beside Excali
 
 ### macOS
 
-Download the `BanguesesDraw-macos` artifact from GitHub Actions. Open the `.dmg` and drag BanguesesDraw into Applications.
+Download the `BanguesesDraw-macos` artifact from GitHub Actions. Open the `.dmg` file inside the artifact and drag BanguesesDraw into Applications.
 
-If macOS warns that the app is from an unidentified developer, right-click the app and choose **Open**. This can happen because the app is not code-signed yet.
+If macOS warns that the app is from an unidentified developer, right-click the app in Applications and choose **Open**. This can happen because the app is ad-hoc signed but not notarized with an Apple Developer ID yet.
 
 ### Windows
 

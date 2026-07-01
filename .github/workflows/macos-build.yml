@@ -47,11 +47,12 @@ jobs:
       - name: Build macOS app
         run: npm exec tauri build
 
+      - name: Verify macOS app signature
+        run: codesign --verify --deep --strict --verbose=4 src-tauri/target/release/bundle/macos/BanguesesDraw.app
+
       - name: Upload macOS bundle
         uses: actions/upload-artifact@v4
         with:
           name: BanguesesDraw-macos
           if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/**/*.dmg
-            src-tauri/target/release/bundle/**/*.app
+          path: src-tauri/target/release/bundle/**/*.dmg
