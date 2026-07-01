@@ -23,6 +23,7 @@ function makeLibraryState() {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw" as const,
         updatedAtMs: 1,
       },
     ],
@@ -31,6 +32,7 @@ function makeLibraryState() {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw" as const,
         updatedAtMs: 1,
       },
     ],
@@ -60,6 +62,13 @@ describe("LibraryView", () => {
     vi.mocked(useDesignLibrary).mockReset();
     vi.mocked(open).mockReset();
     vi.mocked(save).mockReset();
+    localStorage.clear();
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it("opens the create project dialog and submits through an accessibly named input", async () => {
@@ -89,6 +98,7 @@ describe("LibraryView", () => {
       project: "App",
       name: "Flow Copy",
       fileName: "Flow Copy.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
     library.deleteDesign.mockResolvedValue(undefined);
@@ -169,6 +179,7 @@ describe("LibraryView", () => {
       project: "App",
       name: "Imported",
       fileName: "Imported.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
     vi.mocked(open).mockResolvedValue("/tmp/Imported.excalidraw");
@@ -184,7 +195,12 @@ describe("LibraryView", () => {
     expect(open).toHaveBeenCalledWith({
       title: "Import design",
       multiple: false,
-      filters: [{ name: "Excalidraw", extensions: ["excalidraw", "json"] }],
+      filters: [
+        {
+          name: "BanguesesDraw designs",
+          extensions: ["excalidraw", "json", "mmd"],
+        },
+      ],
     });
   });
 
@@ -210,5 +226,158 @@ describe("LibraryView", () => {
       defaultPath: "Flow.excalidraw",
       filters: [{ name: "Excalidraw", extensions: ["excalidraw"] }],
     });
+  });
+
+  it("creates a Mermaid flowchart in the selected project", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    const onOpenDesign = vi.fn();
+    library.createDesign.mockResolvedValue({
+      project: "App",
+      name: "Routing",
+      fileName: "Routing.mmd",
+      kind: "mermaid",
+      content: { source: "flowchart LR\n" },
+    });
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+
+    render(<LibraryView onOpenDesign={onOpenDesign} />);
+
+    await user.click(
+      screen.getByRole("button", { name: "New Mermaid flowchart" }),
+    );
+
+    const dialog = screen.getByRole("dialog", {
+      name: "Create Mermaid flowchart",
+    });
+    await user.type(
+      within(dialog).getByRole("textbox", { name: "Flowchart name" }),
+      "Routing",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Create" }));
+
+    await waitFor(() =>
+      expect(library.createDesign).toHaveBeenCalledWith("Routing", "mermaid"),
+    );
+    expect(onOpenDesign).toHaveBeenCalledWith("App", "Routing.mmd");
+  });
+
+  it("configures AI settings and generates a design in the selected project", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    library.createDesign.mockResolvedValue({
+      project: "App",
+      name: "Generated Flow",
+      fileName: "Generated Flow.excalidraw",
+      kind: "excalidraw",
+      content: {
+        type: "excalidraw",
+        elements: [],
+        appState: {},
+        files: {},
+      },
+    });
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          output_text: JSON.stringify({
+            type: "excalidraw",
+            version: 2,
+            source: "openai",
+            elements: [{ id: "one", type: "rectangle" }],
+            appState: {},
+            files: {},
+          }),
+        }),
+      }),
+    );
+
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "AI settings" }));
+
+    let dialog = screen.getByRole("dialog", { name: "AI settings" });
+    await user.type(
+      within(dialog).getByLabelText("OpenAI API key"),
+      "sk-test",
+    );
+    await user.selectOptions(
+      within(dialog).getByLabelText("Default model"),
+      "gpt-5.4",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Save settings" }));
+
+    await user.click(screen.getByRole("button", { name: "AI diagram" }));
+
+    dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    const designNameInput = within(dialog).getByLabelText("Design name");
+    await user.clear(designNameInput);
+    await user.type(designNameInput, "Generated Flow");
+    await user.type(
+      within(dialog).getByLabelText("Diagram description"),
+      "Draw a simple auth flow",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Generate" }));
+
+    await waitFor(() =>
+      expect(library.createDesign).toHaveBeenCalledWith(
+        "Generated Flow",
+        "excalidraw",
+        expect.objectContaining({
+          type: "excalidraw",
+          elements: [{ id: "one", type: "rectangle" }],
+        }),
+      ),
+    );
+  });
+
+  it("allows cancelling a stuck AI generation request", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation(
+        (_url, init) =>
+          new Promise((_resolve, reject) => {
+            const signal = init?.signal as AbortSignal | undefined;
+            signal?.addEventListener("abort", () => {
+              reject(new DOMException("Aborted", "AbortError"));
+            });
+          }),
+      ),
+    );
+    localStorage.setItem(
+      "banguesesdraw.aiSettings",
+      JSON.stringify({
+        apiKey: "sk-test",
+        selectedModel: "gpt-5.4-mini",
+        customModel: "",
+        quality: "balanced",
+      }),
+    );
+
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "AI diagram" }));
+
+    const dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    await user.type(
+      within(dialog).getByLabelText("Diagram description"),
+      "Draw a Twilio routing flow",
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Generate" }));
+
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeEnabled();
+
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() =>
+      expect(within(dialog).getByText("Generation cancelled.")).toBeVisible(),
+    );
+    expect(library.createDesign).not.toHaveBeenCalled();
   });
 });

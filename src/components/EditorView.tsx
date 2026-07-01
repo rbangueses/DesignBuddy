@@ -1,9 +1,10 @@
 import "@excalidraw/excalidraw/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import { save } from "@tauri-apps/plugin-dialog";
-import { ArrowLeft, Copy, Download, Pencil, Save } from "lucide-react";
+import { ArrowLeft, Bot, Copy, Download, Pencil, Save } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutosave } from "../hooks/useAutosave";
+import { loadAiSettings, type AiSettings } from "../lib/aiSettings";
 import { designApi } from "../lib/designApi";
 import {
   prepareSceneForExcalidraw,
@@ -11,6 +12,7 @@ import {
 } from "../lib/excalidrawScene";
 import { isExcalidrawScene } from "../lib/sceneValidation";
 import type { ExcalidrawScene } from "../types/excalidraw";
+import { AiModifyDialog } from "./AiModifyDialog";
 import { RenameDialog } from "./RenameDialog";
 
 type EditorViewProps = {
@@ -25,7 +27,7 @@ type EditorViewProps = {
   ) => void;
 };
 
-type PendingAction = "rename" | "duplicate" | null;
+type PendingAction = "rename" | "duplicate" | "ai-modify" | null;
 
 export function EditorView({
   project,
@@ -40,6 +42,8 @@ export function EditorView({
   const [isLeaving, setIsLeaving] = useState(false);
   const [isFileActionRunning, setIsFileActionRunning] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [sceneRevision, setSceneRevision] = useState(0);
+  const [aiSettings] = useState<AiSettings>(() => loadAiSettings());
   const latestSceneRef = useRef<ExcalidrawScene | null>(null);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
@@ -58,6 +62,7 @@ export function EditorView({
     latestSceneRef.current = null;
     setLoadError(null);
     setLoadedSceneKey(null);
+    setSceneRevision((revision) => revision + 1);
 
     if (initialScene) {
       const preparedScene = prepareSceneForExcalidraw(initialScene);
@@ -222,6 +227,15 @@ export function EditorView({
     }
   }, [fileName, getLatestSavedScene, project]);
 
+  const handleAiModified = useCallback((scene: ExcalidrawScene) => {
+    const preparedScene = prepareSceneForExcalidraw(scene);
+    latestSceneRef.current = preparedScene;
+    setInitialData(preparedScene);
+    setAutosaveScene(preparedScene);
+    setSceneRevision((revision) => revision + 1);
+    setPendingAction(null);
+  }, []);
+
   const isBusy = isLeaving || isFileActionRunning;
 
   return (
@@ -242,6 +256,16 @@ export function EditorView({
           <strong>{title}</strong>
         </div>
         <div className="save-cluster">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("ai-modify")}
+            aria-label="AI modify"
+            title="AI modify"
+            disabled={isBusy || !initialData}
+          >
+            <Bot size={16} />
+          </button>
           <button
             type="button"
             className="icon-button"
@@ -289,7 +313,7 @@ export function EditorView({
       ) : initialData ? (
         <main className="canvas-wrap">
           <Excalidraw
-            key={sceneKey}
+            key={`${sceneKey}/${sceneRevision}`}
             initialData={initialData as never}
             onChange={handleSceneChange as never}
           />
@@ -316,6 +340,14 @@ export function EditorView({
           submitLabel="Duplicate"
           onCancel={() => setPendingAction(null)}
           onSubmit={handleDuplicate}
+        />
+      ) : null}
+      {pendingAction === "ai-modify" && latestSceneRef.current ? (
+        <AiModifyDialog
+          settings={aiSettings}
+          scene={latestSceneRef.current}
+          onCancel={() => setPendingAction(null)}
+          onModified={handleAiModified}
         />
       ) : null}
     </div>

@@ -1,4 +1,14 @@
-import { Copy, Download, FilePlus2, Pencil, Trash2, Upload } from "lucide-react";
+import {
+  Bot,
+  Copy,
+  Download,
+  FilePlus2,
+  Pencil,
+  Settings,
+  Trash2,
+  Upload,
+  Workflow,
+} from "lucide-react";
 import type { DesignSummary } from "../types/designs";
 
 type DesignListProps = {
@@ -8,6 +18,9 @@ type DesignListProps = {
   filter: string;
   onFilterChange: (filter: string) => void;
   onCreateDesign: () => void;
+  onCreateMermaidDesign: () => void;
+  onCreateAiDesign: () => void;
+  onConfigureAi: () => void;
   onImportDesign: () => void;
   onExportDesign: (design: DesignSummary) => void;
   onRenameDesign: (design: DesignSummary) => void;
@@ -23,6 +36,9 @@ export function DesignList({
   filter,
   onFilterChange,
   onCreateDesign,
+  onCreateMermaidDesign,
+  onCreateAiDesign,
+  onConfigureAi,
   onImportDesign,
   onExportDesign,
   onRenameDesign,
@@ -42,9 +58,26 @@ export function DesignList({
           <h2>{project}</h2>
         </div>
         <div className="design-header-actions">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={onConfigureAi}
+            aria-label="AI settings"
+            title="AI settings"
+          >
+            <Settings size={16} />
+          </button>
+          <button type="button" onClick={onCreateAiDesign}>
+            <Bot size={16} />
+            AI diagram
+          </button>
           <button type="button" onClick={onImportDesign}>
             <Upload size={16} />
             Import design
+          </button>
+          <button type="button" onClick={onCreateMermaidDesign}>
+            <Workflow size={16} />
+            New Mermaid flowchart
           </button>
           <button type="button" onClick={onCreateDesign}>
             <FilePlus2 size={16} />
@@ -77,7 +110,12 @@ export function DesignList({
                 className="design-open-button"
                 onClick={() => onOpenDesign(design.project, design.fileName)}
               >
-                <span>{design.name}</span>
+                <span className="design-name-cluster">
+                  <span>{design.name}</span>
+                  <span className={`design-kind ${design.kind}`}>
+                    {design.kind === "mermaid" ? "Mermaid" : "Excalidraw"}
+                  </span>
+                </span>
                 <span>{new Date(Number(design.updatedAtMs)).toLocaleString()}</span>
               </button>
               <div className="row-actions">

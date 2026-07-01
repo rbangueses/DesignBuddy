@@ -13,6 +13,9 @@ describe("DesignList", () => {
         filter="site"
         onFilterChange={vi.fn()}
         onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
         onImportDesign={vi.fn()}
         onExportDesign={vi.fn()}
         onRenameDesign={vi.fn()}
@@ -35,6 +38,9 @@ describe("DesignList", () => {
         filter=""
         onFilterChange={vi.fn()}
         onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
         onImportDesign={vi.fn()}
         onExportDesign={vi.fn()}
         onRenameDesign={vi.fn()}
@@ -56,6 +62,7 @@ describe("DesignList", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw" as const,
       updatedAtMs: 1,
     };
 
@@ -67,6 +74,9 @@ describe("DesignList", () => {
         filter=""
         onFilterChange={vi.fn()}
         onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
         onImportDesign={vi.fn()}
         onExportDesign={onExportDesign}
         onRenameDesign={vi.fn()}
@@ -99,6 +109,9 @@ describe("DesignList", () => {
         filter=""
         onFilterChange={vi.fn()}
         onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
         onImportDesign={onImportDesign}
         onExportDesign={vi.fn()}
         onRenameDesign={vi.fn()}
@@ -111,5 +124,48 @@ describe("DesignList", () => {
     await user.click(screen.getByRole("button", { name: "Import design" }));
 
     expect(onImportDesign).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows type labels and a new Mermaid flowchart action", () => {
+    render(
+      <DesignList
+        project="Docs"
+        designs={[
+          {
+            project: "Docs",
+            name: "Canvas",
+            fileName: "Canvas.excalidraw",
+            kind: "excalidraw",
+            updatedAtMs: 1,
+          },
+          {
+            project: "Docs",
+            name: "Flow",
+            fileName: "Flow.mmd",
+            kind: "mermaid",
+            updatedAtMs: 2,
+          },
+        ]}
+        totalDesignCount={2}
+        filter=""
+        onFilterChange={vi.fn()}
+        onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
+        onImportDesign={vi.fn()}
+        onExportDesign={vi.fn()}
+        onRenameDesign={vi.fn()}
+        onDuplicateDesign={vi.fn()}
+        onDeleteDesign={vi.fn()}
+        onOpenDesign={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: /new mermaid flowchart/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Excalidraw")).toBeInTheDocument();
+    expect(screen.getByText("Mermaid")).toBeInTheDocument();
   });
 });

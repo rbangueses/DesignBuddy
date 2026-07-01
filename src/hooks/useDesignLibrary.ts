@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { designApi } from "../lib/designApi";
-import type { DesignScene, DesignSummary, ProjectSummary } from "../types/designs";
+import type {
+  DesignContent,
+  DesignKind,
+  DesignScene,
+  DesignSummary,
+  ProjectSummary,
+} from "../types/designs";
 
 type UseDesignLibraryResult = {
   projects: ProjectSummary[];
@@ -18,7 +24,11 @@ type UseDesignLibraryResult = {
   renameProject: (oldName: string, newName: string) => Promise<ProjectSummary>;
   duplicateProject: (sourceName: string, targetName: string) => Promise<ProjectSummary>;
   deleteProject: (name: string) => Promise<void>;
-  createDesign: (name: string) => Promise<DesignScene | null>;
+  createDesign: (
+    name: string,
+    kind?: DesignKind,
+    content?: DesignContent,
+  ) => Promise<DesignScene | null>;
   renameDesign: (oldFileName: string, newName: string) => Promise<DesignSummary | null>;
   duplicateDesign: (
     sourceFileName: string,
@@ -228,11 +238,15 @@ export function useDesignLibrary(): UseDesignLibraryResult {
 
         await loadProjects(preferredProject);
       }),
-    createDesign: async (name) =>
+    createDesign: async (name, kind = "excalidraw", content) =>
       withProject(async (project) => {
-        const design = await designApi.createDesign(project, name);
+        const design = await designApi.createDesign(project, name, kind);
+        const savedDesign = content
+          ? await designApi.writeDesign(project, design.fileName, content)
+          : design;
+
         await loadDesigns(project);
-        return design;
+        return savedDesign;
       }),
     renameDesign: async (oldFileName, newName) =>
       withProject(async (project) => {

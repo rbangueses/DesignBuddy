@@ -58,12 +58,14 @@ describe("useDesignLibrary", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         updatedAtMs: 1,
       },
       {
         project: "App",
         name: "Board",
         fileName: "Board.excalidraw",
+        kind: "excalidraw",
         updatedAtMs: 2,
       },
     ]);
@@ -84,6 +86,7 @@ describe("useDesignLibrary", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw" as const,
         updatedAtMs: 1,
       },
     ];
@@ -116,12 +119,14 @@ describe("useDesignLibrary", () => {
         project: "App",
         name: "Flow chart",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         updatedAtMs: 1,
       },
       {
         project: "App",
         name: "Landing page",
         fileName: "Landing.excalidraw",
+        kind: "excalidraw",
         updatedAtMs: 2,
       },
     ]);
@@ -139,6 +144,7 @@ describe("useDesignLibrary", () => {
         project: "App",
         name: "Flow chart",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         updatedAtMs: 1,
       },
     ]);
@@ -159,6 +165,7 @@ describe("useDesignLibrary", () => {
       project: "Ideas",
       name: "Sketch",
       fileName: "Sketch.excalidraw",
+      kind: "excalidraw",
       content: {
         type: "excalidraw",
         elements: [],
@@ -182,7 +189,36 @@ describe("useDesignLibrary", () => {
       await result.current.createDesign("Sketch");
     });
 
-    expect(designApi.createDesign).toHaveBeenCalledWith("Ideas", "Sketch");
+    expect(designApi.createDesign).toHaveBeenCalledWith(
+      "Ideas",
+      "Sketch",
+      "excalidraw",
+    );
+  });
+
+  it("creates a Mermaid design in the selected project", async () => {
+    vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "Docs", designCount: 0 }]);
+    vi.mocked(designApi.listDesigns).mockResolvedValue([]);
+    vi.mocked(designApi.createDesign).mockResolvedValue({
+      project: "Docs",
+      name: "Routing",
+      fileName: "Routing.mmd",
+      kind: "mermaid",
+      content: { source: "flowchart LR\n" },
+    });
+
+    const { result } = renderHook(() => useDesignLibrary());
+    await waitFor(() => expect(result.current.selectedProject).toBe("Docs"));
+
+    await act(async () => {
+      await result.current.createDesign("Routing", "mermaid");
+    });
+
+    expect(designApi.createDesign).toHaveBeenCalledWith(
+      "Docs",
+      "Routing",
+      "mermaid",
+    );
   });
 
   it("clears stale designs and marks loading when createProject switches to a new project", async () => {
@@ -194,6 +230,7 @@ describe("useDesignLibrary", () => {
         project: string;
         name: string;
         fileName: string;
+        kind: "excalidraw" | "mermaid";
         updatedAtMs: number;
       }[]
     >();
@@ -209,10 +246,11 @@ describe("useDesignLibrary", () => {
       return Promise.resolve([
         {
           project: "App",
-          name: "Flow",
-          fileName: "Flow.excalidraw",
-          updatedAtMs: 1,
-        },
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        kind: "excalidraw",
+        updatedAtMs: 1,
+      },
       ]);
     });
     vi.mocked(designApi.createProject).mockResolvedValueOnce({
@@ -228,6 +266,7 @@ describe("useDesignLibrary", () => {
           project: "App",
           name: "Flow",
           fileName: "Flow.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 1,
         },
       ]),
@@ -257,6 +296,7 @@ describe("useDesignLibrary", () => {
           project: "Ideas",
           name: "Sketch",
           fileName: "Sketch.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]);
@@ -269,6 +309,7 @@ describe("useDesignLibrary", () => {
           project: "Ideas",
           name: "Sketch",
           fileName: "Sketch.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]),
@@ -281,6 +322,7 @@ describe("useDesignLibrary", () => {
         project: string;
         name: string;
         fileName: string;
+        kind: "excalidraw" | "mermaid";
         updatedAtMs: number;
       }[]
     >();
@@ -289,6 +331,7 @@ describe("useDesignLibrary", () => {
         project: string;
         name: string;
         fileName: string;
+        kind: "excalidraw" | "mermaid";
         updatedAtMs: number;
       }[]
     >();
@@ -321,6 +364,7 @@ describe("useDesignLibrary", () => {
           project: "App",
           name: "Old flow",
           fileName: "Old-flow.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 1,
         },
       ]);
@@ -335,6 +379,7 @@ describe("useDesignLibrary", () => {
           project: "Site",
           name: "Landing",
           fileName: "Landing.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]);
@@ -347,6 +392,7 @@ describe("useDesignLibrary", () => {
           project: "Site",
           name: "Landing",
           fileName: "Landing.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]),
@@ -377,12 +423,19 @@ describe("useDesignLibrary", () => {
   it("duplicates and deletes designs through the API", async () => {
     vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "App", designCount: 1 }]);
     vi.mocked(designApi.listDesigns).mockResolvedValue([
-      { project: "App", name: "Flow", fileName: "Flow.excalidraw", updatedAtMs: 1 },
+      {
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        kind: "excalidraw",
+        updatedAtMs: 1,
+      },
     ]);
     vi.mocked(designApi.duplicateDesign).mockResolvedValue({
       project: "App",
       name: "Flow Copy",
       fileName: "Flow Copy.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
     vi.mocked(designApi.deleteDesign).mockResolvedValue();
@@ -406,12 +459,19 @@ describe("useDesignLibrary", () => {
   it("imports and exports designs through the selected project", async () => {
     vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "App", designCount: 1 }]);
     vi.mocked(designApi.listDesigns).mockResolvedValue([
-      { project: "App", name: "Flow", fileName: "Flow.excalidraw", updatedAtMs: 1 },
+      {
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        kind: "excalidraw",
+        updatedAtMs: 1,
+      },
     ]);
     vi.mocked(designApi.importDesign).mockResolvedValue({
       project: "App",
       name: "Imported",
       fileName: "Imported.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
     vi.mocked(designApi.exportDesign).mockResolvedValue(undefined);
@@ -498,6 +558,7 @@ describe("useDesignLibrary", () => {
         project: string;
         name: string;
         fileName: string;
+        kind: "excalidraw" | "mermaid";
         updatedAtMs: number;
       }[]
     >();
@@ -515,6 +576,7 @@ describe("useDesignLibrary", () => {
           project: "App",
           name: "Flow",
           fileName: "Flow.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 1,
         },
       ]);
@@ -528,6 +590,7 @@ describe("useDesignLibrary", () => {
           project: "App",
           name: "Flow",
           fileName: "Flow.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 1,
         },
       ]),
@@ -547,6 +610,7 @@ describe("useDesignLibrary", () => {
           project: "Site",
           name: "Landing",
           fileName: "Landing.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]);
@@ -559,6 +623,7 @@ describe("useDesignLibrary", () => {
           project: "Site",
           name: "Landing",
           fileName: "Landing.excalidraw",
+          kind: "excalidraw",
           updatedAtMs: 2,
         },
       ]),

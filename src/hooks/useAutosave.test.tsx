@@ -34,6 +34,7 @@ describe("useAutosave", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
 
@@ -81,6 +82,7 @@ describe("useAutosave", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
 
@@ -136,6 +138,7 @@ describe("useAutosave", () => {
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
     }>();
 
@@ -191,6 +194,7 @@ describe("useAutosave", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [{ id: "a" }], appState: {}, files: {} },
     });
 
@@ -206,12 +210,14 @@ describe("useAutosave", () => {
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
     }>();
     const secondWrite = createDeferred<{
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
     }>();
 
@@ -280,6 +286,7 @@ describe("useAutosave", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         content: sceneA,
       });
       await Promise.resolve();
@@ -299,6 +306,7 @@ describe("useAutosave", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         content: sceneB,
       });
       await saveResult;

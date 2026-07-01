@@ -8,6 +8,8 @@ BanguesesDraw is a local-first desktop design manager powered by Excalidraw. It 
 - Create, rename, duplicate, and delete designs inside each project.
 - Draw with the full Excalidraw canvas experience.
 - Autosave designs locally as `.excalidraw` files.
+- Create and edit Mermaid flowcharts as local `.mmd` files.
+- Generate lower-cost AI Mermaid flowcharts and convert simple flowcharts into editable Excalidraw designs.
 - Import existing Excalidraw files into a project.
 - Export individual designs for backup, sharing, or moving between machines.
 - Build native installers for macOS and Windows.
@@ -29,7 +31,11 @@ Design files are stored locally in your user Documents folder:
 - macOS: `~/Documents/BanguesesDraw/Designs`
 - Windows: `C:\Users\<you>\Documents\BanguesesDraw\Designs`
 
-Each design is saved as a separate `.excalidraw` file. No cloud sync, account, or remote storage is required.
+Each Excalidraw design is saved as a separate `.excalidraw` file. Mermaid flowcharts are saved as separate `.mmd` files. No cloud sync, account, or remote storage is required.
+
+## Mermaid Flowcharts
+
+BanguesesDraw can store Mermaid flowcharts locally as `.mmd` files beside Excalidraw designs. Mermaid mode is useful for structured diagrams and lower-cost AI generation. Supported conversion to Excalidraw currently focuses on simple `flowchart LR` and `flowchart TD` diagrams with basic nodes and arrows.
 
 ## Install
 
@@ -111,6 +117,7 @@ The workflows run on pushes to `main` and can also be started manually from GitH
 - TypeScript
 - Vite
 - Excalidraw
+- Mermaid
 - Rust backend commands for local file storage
 
 ## License

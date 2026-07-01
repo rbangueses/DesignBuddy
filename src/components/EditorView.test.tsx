@@ -53,6 +53,7 @@ vi.mock("@excalidraw/excalidraw", () => ({
 
 vi.mock("lucide-react", () => ({
   ArrowLeft: () => <span aria-hidden="true">arrow</span>,
+  Bot: () => <span aria-hidden="true">bot</span>,
   Copy: () => <span aria-hidden="true">copy</span>,
   Download: () => <span aria-hidden="true">download</span>,
   Pencil: () => <span aria-hidden="true">pencil</span>,
@@ -99,6 +100,8 @@ describe("EditorView", () => {
     vi.mocked(designApi.exportDesign).mockReset();
     vi.mocked(designApi.writeDesign).mockReset();
     vi.mocked(save).mockReset();
+    localStorage.clear();
+    vi.unstubAllGlobals();
   });
 
   it("flushes pending edits before leaving the editor", async () => {
@@ -109,12 +112,14 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockResolvedValue({
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: {
         type: "excalidraw",
         elements: [{ id: "changed" }],
@@ -155,6 +160,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
 
@@ -178,6 +184,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
 
@@ -204,6 +211,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockRejectedValue(new Error("Disk full"));
@@ -231,6 +239,7 @@ describe("EditorView", () => {
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: {
         type: "excalidraw";
         elements: unknown[];
@@ -243,6 +252,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockReturnValue(deferred.promise);
@@ -276,6 +286,7 @@ describe("EditorView", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         content: {
           type: "excalidraw",
           elements: [{ id: "changed" }],
@@ -296,6 +307,7 @@ describe("EditorView", () => {
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: {
         type: "excalidraw";
         elements: unknown[];
@@ -307,6 +319,7 @@ describe("EditorView", () => {
       project: string;
       name: string;
       fileName: string;
+      kind: "excalidraw";
       content: {
         type: "excalidraw";
         elements: unknown[];
@@ -319,6 +332,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign)
@@ -359,6 +373,7 @@ describe("EditorView", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         content: {
           type: "excalidraw",
           elements: [{ id: "changed-1" }],
@@ -387,6 +402,7 @@ describe("EditorView", () => {
         project: "App",
         name: "Flow",
         fileName: "Flow.excalidraw",
+        kind: "excalidraw",
         content: {
           type: "excalidraw",
           elements: [{ id: "changed-2" }],
@@ -408,12 +424,14 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockResolvedValue({
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: {
         type: "excalidraw",
         elements: [{ id: "changed-1" }],
@@ -425,6 +443,7 @@ describe("EditorView", () => {
       project: "App",
       name: "Renamed",
       fileName: "Renamed.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
 
@@ -474,18 +493,21 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockResolvedValue({
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.duplicateDesign).mockResolvedValue({
       project: "App",
       name: "Flow Copy",
       fileName: "Flow Copy.excalidraw",
+      kind: "excalidraw",
       updatedAtMs: 2,
     });
 
@@ -522,6 +544,98 @@ describe("EditorView", () => {
     expect(dialog).not.toBeInTheDocument();
   });
 
+  it("modifies the current design with AI and saves the returned scene", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: {
+        type: "excalidraw",
+        elements: [{ id: "original" }],
+        appState: {},
+        files: {},
+      },
+    });
+    vi.mocked(designApi.writeDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: {
+        type: "excalidraw",
+        elements: [{ id: "modified" }],
+        appState: {},
+        files: {},
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          output_text: JSON.stringify({
+            type: "excalidraw",
+            version: 2,
+            source: "openai",
+            elements: [{ id: "modified" }],
+            appState: {},
+            files: {},
+          }),
+        }),
+      }),
+    );
+    localStorage.setItem(
+      "banguesesdraw.aiSettings",
+      JSON.stringify({
+        apiKey: "sk-test",
+        selectedModel: "gpt-5.4-mini",
+        customModel: "",
+        quality: "balanced",
+      }),
+    );
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Mock Excalidraw (1)")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "AI modify" }));
+
+    const dialog = screen.getByRole("dialog", { name: "AI modify" });
+    await user.type(
+      screen.getByRole("textbox", { name: "Modification request" }),
+      "Add an observability box",
+    );
+    await user.click(screen.getByRole("button", { name: "Modify" }));
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+
+    const lastInitialData = initialDataRenders[
+      initialDataRenders.length - 1
+    ] as { elements?: unknown[] };
+    expect(lastInitialData.elements).toEqual([{ id: "modified" }]);
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(designApi.writeDesign).toHaveBeenCalledWith(
+        "App",
+        "Flow.excalidraw",
+        expect.objectContaining({
+          elements: [{ id: "modified" }],
+        }),
+      ),
+    );
+  });
+
   it("flushes pending edits before exporting from the editor", async () => {
     const user = userEvent.setup();
 
@@ -529,12 +643,14 @@ describe("EditorView", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
     vi.mocked(designApi.writeDesign).mockResolvedValue({
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: {
         type: "excalidraw",
         elements: [{ id: "changed-1" }],

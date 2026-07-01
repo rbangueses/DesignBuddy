@@ -28,6 +28,12 @@ vi.mock("./components/LibraryView", () => ({
       >
         Open sample design
       </button>
+      <button
+        type="button"
+        onClick={() => onOpenDesign("App", "Flow.mmd")}
+      >
+        Open Mermaid design
+      </button>
     </section>
   ),
 }));
@@ -77,6 +83,29 @@ vi.mock("./components/EditorView", () => ({
   ),
 }));
 
+vi.mock("./components/MermaidEditorView", () => ({
+  MermaidEditorView: ({
+    project,
+    fileName,
+    initialSource,
+    onBack,
+  }: {
+    project: string;
+    fileName: string;
+    initialSource: string;
+    onBack: () => void;
+  }) => (
+    <section aria-label="Mermaid editor">
+      <p>
+        {project} / {fileName} / {initialSource}
+      </p>
+      <button type="button" onClick={onBack}>
+        Back
+      </button>
+    </section>
+  ),
+}));
+
 describe("App", () => {
   beforeEach(() => {
     vi.mocked(designApi.readDesign).mockReset();
@@ -84,6 +113,7 @@ describe("App", () => {
       project: "App",
       name: "Flow",
       fileName: "Flow.excalidraw",
+      kind: "excalidraw",
       content: { type: "excalidraw", elements: [], appState: {}, files: {} },
     });
   });
@@ -126,5 +156,24 @@ describe("App", () => {
     await user.click(await screen.findByRole("button", { name: "Rename in editor" }));
 
     expect(screen.getByText("App / Renamed.excalidraw")).toBeVisible();
+  });
+
+  it("opens Mermaid designs in the Mermaid editor", async () => {
+    const user = userEvent.setup();
+    vi.mocked(designApi.readDesign).mockResolvedValueOnce({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.mmd",
+      kind: "mermaid",
+      content: { source: "flowchart LR\n" },
+    });
+
+    render(<App />);
+
+    await user.click(screen.getByRole("button", { name: "Open Mermaid design" }));
+
+    expect(screen.getByLabelText("Mermaid editor")).toHaveTextContent(
+      "App / Flow.mmd / flowchart LR",
+    );
   });
 });

@@ -1,7 +1,14 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { useState } from "react";
 import { useDesignLibrary } from "../hooks/useDesignLibrary";
+import {
+  loadAiSettings,
+  saveAiSettings,
+  type AiSettings,
+} from "../lib/aiSettings";
 import type { DesignSummary } from "../types/designs";
+import { AiDiagramDialog } from "./AiDiagramDialog";
+import { AiSettingsDialog } from "./AiSettingsDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DesignList } from "./DesignList";
 import { ProjectSidebar } from "./ProjectSidebar";
@@ -15,6 +22,9 @@ type LibraryViewProps = {
 type PendingAction =
   | { type: "create-project" }
   | { type: "create-design" }
+  | { type: "create-mermaid-design" }
+  | { type: "create-ai-design" }
+  | { type: "ai-settings" }
   | { type: "rename-project"; project: string }
   | { type: "duplicate-project"; project: string }
   | { type: "delete-project"; project: string }
@@ -26,20 +36,18 @@ type PendingAction =
 export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
   const library = useDesignLibrary();
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
+  const [aiSettings, setAiSettings] = useState<AiSettings>(() => loadAiSettings());
 
   const closeDialog = () => setPendingAction(null);
-  const excalidrawImportFilters = [
-    { name: "Excalidraw", extensions: ["excalidraw", "json"] },
-  ];
-  const excalidrawExportFilters = [
-    { name: "Excalidraw", extensions: ["excalidraw"] },
+  const designImportFilters = [
+    { name: "BanguesesDraw designs", extensions: ["excalidraw", "json", "mmd"] },
   ];
 
   const handleImportDesign = async () => {
     const sourcePath = await open({
       title: "Import design",
       multiple: false,
-      filters: excalidrawImportFilters,
+      filters: designImportFilters,
     });
 
     if (typeof sourcePath === "string") {
@@ -48,10 +56,14 @@ export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
   };
 
   const handleExportDesign = async (design: DesignSummary) => {
+    const exportFilters =
+      design.kind === "mermaid"
+        ? [{ name: "Mermaid", extensions: ["mmd"] }]
+        : [{ name: "Excalidraw", extensions: ["excalidraw"] }];
     const targetPath = await save({
       title: "Export design",
       defaultPath: design.fileName,
-      filters: excalidrawExportFilters,
+      filters: exportFilters,
     });
 
     if (typeof targetPath === "string") {
@@ -85,6 +97,11 @@ export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
             filter={library.filter}
             onFilterChange={library.setFilter}
             onCreateDesign={() => setPendingAction({ type: "create-design" })}
+            onCreateMermaidDesign={() =>
+              setPendingAction({ type: "create-mermaid-design" })
+            }
+            onCreateAiDesign={() => setPendingAction({ type: "create-ai-design" })}
+            onConfigureAi={() => setPendingAction({ type: "ai-settings" })}
             onImportDesign={() => {
               void handleImportDesign().catch(() => undefined);
             }}
@@ -124,6 +141,55 @@ export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
             if (design) {
               onOpenDesign(design.project, design.fileName);
             }
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "create-mermaid-design" ? (
+        <RenameDialog
+          title="Create Mermaid flowchart"
+          inputLabel="Flowchart name"
+          submitLabel="Create"
+          onCancel={closeDialog}
+          onSubmit={async (name) => {
+            const design = await library.createDesign(name, "mermaid");
+            closeDialog();
+            if (design) {
+              onOpenDesign(design.project, design.fileName);
+            }
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "create-ai-design" ? (
+        <AiDiagramDialog
+          settings={aiSettings}
+          onCancel={closeDialog}
+          onGenerated={async (result) => {
+            const design =
+              result.kind === "mermaid"
+                ? await library.createDesign(result.name, "mermaid", {
+                    source: result.source,
+                  })
+                : await library.createDesign(
+                    result.name,
+                    "excalidraw",
+                    result.scene,
+                  );
+            closeDialog();
+
+            if (design) {
+              onOpenDesign(design.project, design.fileName);
+            }
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "ai-settings" ? (
+        <AiSettingsDialog
+          settings={aiSettings}
+          onCancel={closeDialog}
+          onSave={(settings) => {
+            saveAiSettings(settings);
+            setAiSettings(settings);
+            closeDialog();
           }}
         />
       ) : null}
