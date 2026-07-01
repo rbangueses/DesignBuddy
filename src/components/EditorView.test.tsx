@@ -234,7 +234,9 @@ describe("EditorView", () => {
 
     await screen.findByText("Mock Excalidraw (0)");
 
-    expect(excalidrawPropsRenders.at(-1)).toEqual({ aiEnabled: false });
+    expect(excalidrawPropsRenders[excalidrawPropsRenders.length - 1]).toEqual({
+      aiEnabled: false,
+    });
   });
 
   it("stays in the editor and surfaces save errors when leaving with pending edits", async () => {
