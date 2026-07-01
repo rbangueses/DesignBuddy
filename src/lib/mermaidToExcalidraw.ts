@@ -4,9 +4,10 @@ import type { ExcalidrawScene } from "../types/excalidraw";
 
 type Element = Record<string, unknown>;
 
-const NODE_WIDTH = 190;
+const NODE_WIDTH = 260;
 const NODE_HEIGHT = 76;
 const GAP = 90;
+const NODE_LABEL_PADDING = 16;
 
 function elementId(prefix: string, index: number) {
   return `${prefix}-${index.toString(36).padStart(4, "0")}`;
@@ -44,10 +45,16 @@ function nodeShapeType(node: ParsedMermaidNode) {
   return node.shape === "decision" ? "diamond" : "rectangle";
 }
 
-function textElement(id: string, text: string, x: number, y: number): Element {
+function textElement(
+  id: string,
+  text: string,
+  x: number,
+  y: number,
+  width = Math.max(70, text.length * 8),
+): Element {
   return {
     ...baseElement(id, "text", x, y),
-    width: Math.max(70, text.length * 8),
+    width,
     height: 24,
     text,
     fontSize: 20,
@@ -103,29 +110,87 @@ function calculateLevels(nodes: ParsedMermaidNode[], edges: { from: string; to: 
   return levels;
 }
 
+function orderNodesByLevel(
+  nodes: ParsedMermaidNode[],
+  edges: { from: string; to: string }[],
+  levels: Map<string, number>,
+) {
+  const originalIndex = new Map(nodes.map((node, index) => [node.id, index]));
+  const incoming = new Map<string, string[]>();
+  const levelsByDepth = new Map<number, ParsedMermaidNode[]>();
+  const orderedIndex = new Map<string, number>();
+
+  for (const edge of edges) {
+    incoming.set(edge.to, [...(incoming.get(edge.to) ?? []), edge.from]);
+  }
+
+  for (const node of nodes) {
+    const level = levels.get(node.id) ?? 0;
+    levelsByDepth.set(level, [...(levelsByDepth.get(level) ?? []), node]);
+  }
+
+  const orderedLevels = Array.from(levelsByDepth.entries())
+    .sort(([left], [right]) => left - right)
+    .map(([level, levelNodes]) => {
+      const orderedNodes = [...levelNodes].sort((left, right) => {
+        if (level === 0) {
+          return (originalIndex.get(left.id) ?? 0) - (originalIndex.get(right.id) ?? 0);
+        }
+
+        const leftParents = incoming.get(left.id) ?? [];
+        const rightParents = incoming.get(right.id) ?? [];
+        const leftParentAverage =
+          leftParents.reduce(
+            (sum, parent) => sum + (orderedIndex.get(parent) ?? originalIndex.get(parent) ?? 0),
+            0,
+          ) / Math.max(1, leftParents.length);
+        const rightParentAverage =
+          rightParents.reduce(
+            (sum, parent) => sum + (orderedIndex.get(parent) ?? originalIndex.get(parent) ?? 0),
+            0,
+          ) / Math.max(1, rightParents.length);
+
+        if (leftParentAverage !== rightParentAverage) {
+          return leftParentAverage - rightParentAverage;
+        }
+
+        return (originalIndex.get(left.id) ?? 0) - (originalIndex.get(right.id) ?? 0);
+      });
+
+      orderedNodes.forEach((node, index) => orderedIndex.set(node.id, index));
+      return orderedNodes;
+    });
+
+  return orderedLevels;
+}
+
 export function mermaidToExcalidrawScene(source: string): ExcalidrawScene {
   const parsed = parseMermaidFlowchart(source);
   const levels = calculateLevels(parsed.nodes, parsed.edges);
-  const levelCounts = new Map<number, number>();
+  const orderedLevels = orderNodesByLevel(parsed.nodes, parsed.edges, levels);
+  const maxLevelSize = Math.max(...orderedLevels.map((level) => level.length), 1);
   const positions = new Map<string, { x: number; y: number }>();
+  const horizontalSpacing = NODE_WIDTH + GAP;
+  const verticalSpacing = NODE_HEIGHT + GAP;
 
-  for (const node of parsed.nodes) {
-    const level = levels.get(node.id) ?? 0;
-    const siblingIndex = levelCounts.get(level) ?? 0;
-    levelCounts.set(level, siblingIndex + 1);
+  orderedLevels.forEach((levelNodes, levelIndex) => {
+    const horizontalOffset = ((maxLevelSize - levelNodes.length) * horizontalSpacing) / 2;
+    const verticalOffset = ((maxLevelSize - levelNodes.length) * verticalSpacing) / 2;
 
-    if (parsed.direction === "LR") {
-      positions.set(node.id, {
-        x: level * (NODE_WIDTH + GAP),
-        y: siblingIndex * (NODE_HEIGHT + GAP),
-      });
-    } else {
-      positions.set(node.id, {
-        x: siblingIndex * (NODE_WIDTH + GAP),
-        y: level * (NODE_HEIGHT + GAP),
-      });
-    }
-  }
+    levelNodes.forEach((node, siblingIndex) => {
+      if (parsed.direction === "LR") {
+        positions.set(node.id, {
+          x: levelIndex * horizontalSpacing,
+          y: verticalOffset + siblingIndex * verticalSpacing,
+        });
+      } else {
+        positions.set(node.id, {
+          x: horizontalOffset + siblingIndex * horizontalSpacing,
+          y: levelIndex * verticalSpacing,
+        });
+      }
+    });
+  });
 
   const elements: Element[] = [];
 
@@ -143,8 +208,9 @@ export function mermaidToExcalidrawScene(source: string): ExcalidrawScene {
       textElement(
         textId,
         node.label,
-        position.x + NODE_WIDTH / 2 - Math.max(70, node.label.length * 8) / 2,
+        position.x + NODE_LABEL_PADDING,
         position.y + NODE_HEIGHT / 2 - 12,
+        NODE_WIDTH - NODE_LABEL_PADDING * 2,
       ),
     );
   });

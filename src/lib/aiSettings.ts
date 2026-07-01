@@ -37,6 +37,7 @@ export type AiSettings = {
   selectedModel: AiModelId;
   customModel: string;
   quality: AiQuality;
+  enableMermaid: boolean;
 };
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
@@ -44,6 +45,7 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   selectedModel: "gpt-5.4-mini",
   customModel: "",
   quality: "balanced",
+  enableMermaid: true,
 };
 
 function isAiModelId(value: unknown): value is AiModelId {
@@ -78,6 +80,10 @@ function sanitizeAiSettings(value: unknown): AiSettings {
         ? candidate.customModel
         : DEFAULT_AI_SETTINGS.customModel,
     quality,
+    enableMermaid:
+      typeof candidate.enableMermaid === "boolean"
+        ? candidate.enableMermaid
+        : DEFAULT_AI_SETTINGS.enableMermaid,
   };
 }
 

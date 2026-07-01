@@ -9,6 +9,7 @@ import {
   type AiSettings,
 } from "../lib/aiSettings";
 import { modifyMermaidFlowchart } from "../lib/openaiDiagram";
+import { useDialogEscape } from "./useDialogEscape";
 
 type AiMermaidModifyDialogProps = {
   settings: AiSettings;
@@ -92,6 +93,8 @@ export function AiMermaidModifyDialog({
 
     onCancel();
   }
+
+  useDialogEscape(handleCancel);
 
   return (
     <div className="dialog-backdrop" role="presentation">

@@ -168,4 +168,40 @@ describe("DesignList", () => {
     expect(screen.getByText("Excalidraw")).toBeInTheDocument();
     expect(screen.getByText("Mermaid")).toBeInTheDocument();
   });
+
+  it("hides the new Mermaid action when Mermaid is disabled", () => {
+    render(
+      <DesignList
+        project="Docs"
+        designs={[
+          {
+            project: "Docs",
+            name: "Flow",
+            fileName: "Flow.mmd",
+            kind: "mermaid",
+            updatedAtMs: 2,
+          },
+        ]}
+        totalDesignCount={1}
+        filter=""
+        enableMermaid={false}
+        onFilterChange={vi.fn()}
+        onCreateDesign={vi.fn()}
+        onCreateMermaidDesign={vi.fn()}
+        onCreateAiDesign={vi.fn()}
+        onConfigureAi={vi.fn()}
+        onImportDesign={vi.fn()}
+        onExportDesign={vi.fn()}
+        onRenameDesign={vi.fn()}
+        onDuplicateDesign={vi.fn()}
+        onDeleteDesign={vi.fn()}
+        onOpenDesign={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /new mermaid flowchart/i }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Mermaid")).toBeInTheDocument();
+  });
 });

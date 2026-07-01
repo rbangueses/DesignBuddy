@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useId, useState } from "react";
 import { validateDisplayName } from "../lib/designNames";
+import { useDialogEscape } from "./useDialogEscape";
 
 type RenameDialogProps = {
   title: string;
@@ -23,6 +24,8 @@ export function RenameDialog({
   const [error, setError] = useState<string | null>(null);
   const inputId = useId();
   const errorId = `${inputId}-error`;
+
+  useDialogEscape(onCancel);
 
   async function submit() {
     const validation = validateDisplayName(name);

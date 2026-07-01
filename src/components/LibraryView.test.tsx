@@ -204,6 +204,42 @@ describe("LibraryView", () => {
     });
   });
 
+  it("removes Mermaid from import filters when Mermaid is disabled", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    vi.mocked(open).mockResolvedValue("/tmp/Imported.excalidraw");
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+    localStorage.setItem(
+      "banguesesdraw.aiSettings",
+      JSON.stringify({
+        apiKey: "",
+        selectedModel: "gpt-5.4-mini",
+        customModel: "",
+        quality: "balanced",
+        enableMermaid: false,
+      }),
+    );
+
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    expect(
+      screen.queryByRole("button", { name: "New Mermaid flowchart" }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Import design" }));
+
+    expect(open).toHaveBeenCalledWith({
+      title: "Import design",
+      multiple: false,
+      filters: [
+        {
+          name: "BanguesesDraw designs",
+          extensions: ["excalidraw", "json"],
+        },
+      ],
+    });
+  });
+
   it("exports a design to the chosen file path", async () => {
     const user = userEvent.setup();
     const library = makeLibraryState();
@@ -308,11 +344,15 @@ describe("LibraryView", () => {
       within(dialog).getByLabelText("Default model"),
       "gpt-5.4",
     );
+    await user.click(within(dialog).getByLabelText("Enable Mermaid diagrams"));
     await user.click(within(dialog).getByRole("button", { name: "Save settings" }));
 
     await user.click(screen.getByRole("button", { name: "AI diagram" }));
 
     dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    expect(
+      within(dialog).queryByRole("button", { name: "Mermaid" }),
+    ).not.toBeInTheDocument();
     const designNameInput = within(dialog).getByLabelText("Design name");
     await user.clear(designNameInput);
     await user.type(designNameInput, "Generated Flow");

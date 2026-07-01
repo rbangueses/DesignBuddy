@@ -13,6 +13,7 @@ const settings = {
   selectedModel: "gpt-5.4-mini" as const,
   customModel: "",
   quality: "draft" as const,
+  enableMermaid: true,
 };
 
 describe("AiMermaidModifyDialog", () => {

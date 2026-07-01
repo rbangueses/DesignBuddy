@@ -35,4 +35,26 @@ describe("Excalidraw scene normalization", () => {
 
     expect(scene.appState).toEqual({ viewBackgroundColor: "#f8f9fa" });
   });
+
+  it("expands narrow text elements before opening generated scenes", () => {
+    const scene = prepareSceneForExcalidraw({
+      type: "excalidraw",
+      elements: [
+        {
+          id: "text",
+          type: "text",
+          text: "Conversation Intelligence",
+          originalText: "Conversation Intelligence",
+          width: 80,
+          height: 24,
+        },
+      ],
+      appState: {},
+      files: {},
+    });
+
+    expect(Number((scene.elements[0] as Record<string, unknown>).width)).toBeGreaterThan(
+      200,
+    );
+  });
 });

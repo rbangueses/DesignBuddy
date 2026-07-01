@@ -45,4 +45,24 @@ describe("RenameDialog", () => {
       expect(screen.getByText("Project already exists.")).toBeVisible(),
     );
   });
+
+  it("cancels when Escape is pressed", async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+
+    render(
+      <RenameDialog
+        title="Rename design"
+        inputLabel="Design name"
+        initialName="Flow"
+        submitLabel="Rename"
+        onCancel={onCancel}
+        onSubmit={vi.fn()}
+      />,
+    );
+
+    await user.keyboard("{Escape}");
+
+    expect(onCancel).toHaveBeenCalledOnce();
+  });
 });

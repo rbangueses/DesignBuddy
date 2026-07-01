@@ -14,6 +14,7 @@ import {
   generateMermaidFlowchart,
 } from "../lib/openaiDiagram";
 import type { ExcalidrawScene } from "../types/excalidraw";
+import { useDialogEscape } from "./useDialogEscape";
 
 type AiDiagramDialogProps = {
   settings: AiSettings;
@@ -40,6 +41,7 @@ export function AiDiagramDialog({
   const [outputMode, setOutputMode] = useState<"excalidraw" | "mermaid">(
     "excalidraw",
   );
+  const enableMermaid = settings.enableMermaid;
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -84,7 +86,7 @@ export function AiDiagramDialog({
     abortControllerRef.current = abortController;
 
     try {
-      if (outputMode === "mermaid") {
+      if (enableMermaid && outputMode === "mermaid") {
         const source = await generateMermaidFlowchart({
           apiKey: settings.apiKey.trim(),
           model,
@@ -126,6 +128,8 @@ export function AiDiagramDialog({
     onCancel();
   }
 
+  useDialogEscape(handleCancel);
+
   return (
     <div className="dialog-backdrop" role="presentation">
       <section
@@ -152,22 +156,26 @@ export function AiDiagramDialog({
             rows={6}
           />
 
-          <div className="segmented-control" aria-label="Diagram output">
-            <button
-              type="button"
-              className={outputMode === "excalidraw" ? "active" : ""}
-              onClick={() => setOutputMode("excalidraw")}
-            >
-              Excalidraw
-            </button>
-            <button
-              type="button"
-              className={outputMode === "mermaid" ? "active" : ""}
-              onClick={() => setOutputMode("mermaid")}
-            >
-              Mermaid
-            </button>
-          </div>
+          {enableMermaid ? (
+            <div className="segmented-control" aria-label="Diagram output">
+              <button
+                type="button"
+                className={outputMode === "excalidraw" ? "active" : ""}
+                aria-pressed={outputMode === "excalidraw"}
+                onClick={() => setOutputMode("excalidraw")}
+              >
+                Excalidraw
+              </button>
+              <button
+                type="button"
+                className={outputMode === "mermaid" ? "active" : ""}
+                aria-pressed={outputMode === "mermaid"}
+                onClick={() => setOutputMode("mermaid")}
+              >
+                Mermaid
+              </button>
+            </div>
+          ) : null}
 
           <div className="ai-field-grid">
             <div>

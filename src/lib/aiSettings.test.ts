@@ -16,12 +16,13 @@ describe("aiSettings", () => {
     expect(loadAiSettings()).toEqual(DEFAULT_AI_SETTINGS);
   });
 
-  it("persists the API key, selected model, custom model, and quality", () => {
+  it("persists the API key, selected model, custom model, quality, and Mermaid setting", () => {
     saveAiSettings({
       apiKey: "sk-test",
       selectedModel: "custom",
       customModel: "gpt-custom-diagrams",
       quality: "high",
+      enableMermaid: false,
     });
 
     expect(loadAiSettings()).toEqual({
@@ -29,6 +30,7 @@ describe("aiSettings", () => {
       selectedModel: "custom",
       customModel: "gpt-custom-diagrams",
       quality: "high",
+      enableMermaid: false,
     });
   });
 

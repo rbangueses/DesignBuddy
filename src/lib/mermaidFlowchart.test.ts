@@ -32,6 +32,34 @@ describe("parseMermaidFlowchart", () => {
     });
   });
 
+  it("parses chained arrows as separate edges", () => {
+    expect(
+      parseMermaidFlowchart(
+        [
+          "flowchart TD",
+          "  ORCH[Twilio Orchestrator] -->|trigger| MEM[(Memory)] --> SUM[Summaries]",
+          "  VOICE[Voice] --> RELAY[Conversation Relay] --> TAC[Twilio Agent Connect]",
+        ].join("\n"),
+      ),
+    ).toEqual({
+      direction: "TD",
+      nodes: [
+        { id: "ORCH", label: "Twilio Orchestrator", shape: "rectangle" },
+        { id: "MEM", label: "Memory", shape: "database" },
+        { id: "SUM", label: "Summaries", shape: "rectangle" },
+        { id: "VOICE", label: "Voice", shape: "rectangle" },
+        { id: "RELAY", label: "Conversation Relay", shape: "rectangle" },
+        { id: "TAC", label: "Twilio Agent Connect", shape: "rectangle" },
+      ],
+      edges: [
+        { from: "ORCH", to: "MEM", label: "trigger" },
+        { from: "MEM", to: "SUM" },
+        { from: "VOICE", to: "RELAY" },
+        { from: "RELAY", to: "TAC" },
+      ],
+    });
+  });
+
   it("rejects unsupported syntax", () => {
     expect(() =>
       parseMermaidFlowchart("flowchart LR\n  subgraph One\n  A --> B\n  end\n"),

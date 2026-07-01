@@ -8,6 +8,7 @@ import {
   type AiQuality,
   type AiSettings,
 } from "../lib/aiSettings";
+import { useDialogEscape } from "./useDialogEscape";
 
 type AiSettingsDialogProps = {
   settings: AiSettings;
@@ -26,12 +27,15 @@ export function AiSettingsDialog({
   );
   const [customModel, setCustomModel] = useState(settings.customModel);
   const [quality, setQuality] = useState<AiQuality>(settings.quality);
+  const [enableMermaid, setEnableMermaid] = useState(settings.enableMermaid);
   const [error, setError] = useState<string | null>(null);
   const apiKeyId = useId();
   const modelId = useId();
   const customModelId = useId();
   const qualityId = useId();
   const errorId = useId();
+
+  useDialogEscape(onCancel);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -41,6 +45,7 @@ export function AiSettingsDialog({
       selectedModel,
       customModel: customModel.trim(),
       quality,
+      enableMermaid,
     };
 
     if (!resolveAiModel(nextSettings)) {
@@ -109,6 +114,15 @@ export function AiSettingsDialog({
               </option>
             ))}
           </select>
+
+          <label className="checkbox-field">
+            <input
+              type="checkbox"
+              checked={enableMermaid}
+              onChange={(event) => setEnableMermaid(event.target.checked)}
+            />
+            Enable Mermaid diagrams
+          </label>
 
           {error ? (
             <p className="form-error" id={errorId}>

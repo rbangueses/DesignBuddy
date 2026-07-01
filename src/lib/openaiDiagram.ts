@@ -82,6 +82,9 @@ const MERMAID_SYSTEM_PROMPT = [
   "Use only flowchart LR or flowchart TD.",
   "Use simple node labels and simple arrows.",
   "Allowed shapes: A[Label], A(Label), A{Decision}, A[(Database)].",
+  "Keep the diagram compact: 8 to 12 nodes maximum, 20 lines maximum.",
+  "Merge related details into concise labels instead of creating many tiny nodes.",
+  "Prefer labeled arrows over extra explanatory nodes.",
 ].join("\n");
 
 const MERMAID_MODIFY_SYSTEM_PROMPT = [
@@ -89,12 +92,13 @@ const MERMAID_MODIFY_SYSTEM_PROMPT = [
   "Return only the full updated Mermaid text with no Markdown fence.",
   "Use only flowchart LR or flowchart TD.",
   "Preserve existing labels and structure unless the instruction asks otherwise.",
+  "Keep the diagram compact and valid.",
 ].join("\n");
 
 const QUALITY_TO_MERMAID_MAX_OUTPUT_TOKENS: Record<AiQuality, number> = {
-  draft: 1_500,
-  balanced: 3_000,
-  high: 5_000,
+  draft: 4_000,
+  balanced: 8_000,
+  high: 12_000,
 };
 
 function getErrorMessage(error: unknown) {
@@ -382,6 +386,7 @@ async function callOpenAiForText({
   systemPrompt,
   prompt,
   maxOutputTokens,
+  reasoningEffort = QUALITY_TO_REASONING_EFFORT[quality],
   signal,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: {
@@ -391,6 +396,7 @@ async function callOpenAiForText({
   systemPrompt: string;
   prompt: string;
   maxOutputTokens: number;
+  reasoningEffort?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
 }) {
@@ -416,7 +422,7 @@ async function callOpenAiForText({
         model,
         max_output_tokens: maxOutputTokens,
         reasoning: {
-          effort: QUALITY_TO_REASONING_EFFORT[quality],
+          effort: reasoningEffort,
         },
         text: {
           verbosity: "low",
@@ -500,6 +506,7 @@ export async function generateMermaidFlowchart({
     systemPrompt: MERMAID_SYSTEM_PROMPT,
     prompt: description,
     maxOutputTokens: QUALITY_TO_MERMAID_MAX_OUTPUT_TOKENS[quality],
+    reasoningEffort: "low",
   });
   const source = cleanMermaidSource(responseText);
   const validationError = validateMermaidSource(source);
@@ -535,6 +542,7 @@ export async function modifyMermaidFlowchart({
       source,
     ].join("\n"),
     maxOutputTokens: QUALITY_TO_MERMAID_MAX_OUTPUT_TOKENS[quality],
+    reasoningEffort: "low",
   });
   const nextSource = cleanMermaidSource(responseText);
   const validationError = validateMermaidSource(nextSource);

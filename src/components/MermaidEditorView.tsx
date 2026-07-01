@@ -242,6 +242,7 @@ export function MermaidEditorView({
           </button>
           <button
             type="button"
+            className="convert-button"
             onClick={() => void handleConvert()}
             disabled={isBusy}
           >

@@ -1,7 +1,7 @@
 import "@excalidraw/excalidraw/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
 import { save } from "@tauri-apps/plugin-dialog";
-import { ArrowLeft, Bot, Copy, Download, Pencil, Save } from "lucide-react";
+import { ArrowLeft, Bot, Copy, Download, Pencil, Save, Shapes } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutosave } from "../hooks/useAutosave";
 import { loadAiSettings, type AiSettings } from "../lib/aiSettings";
@@ -11,9 +11,18 @@ import {
   prepareSceneForStorage,
 } from "../lib/excalidrawScene";
 import { isExcalidrawScene } from "../lib/sceneValidation";
+import {
+  createTwilioComponentElements,
+  getTwilioComponent,
+  getTwilioComponentColors,
+  TWILIO_COMPONENT_GROUPS,
+  TWILIO_COMPONENT_HEIGHT,
+  TWILIO_COMPONENT_WIDTH,
+} from "../lib/twilioComponents";
 import type { ExcalidrawScene } from "../types/excalidraw";
 import { AiModifyDialog } from "./AiModifyDialog";
 import { RenameDialog } from "./RenameDialog";
+import { useDialogEscape } from "./useDialogEscape";
 
 type EditorViewProps = {
   project: string;
@@ -27,7 +36,67 @@ type EditorViewProps = {
   ) => void;
 };
 
-type PendingAction = "rename" | "duplicate" | "ai-modify" | null;
+type PendingAction = "rename" | "duplicate" | "ai-modify" | "twilio-components" | null;
+
+function numberFromAppState(
+  appState: Record<string, unknown> | undefined,
+  key: string,
+  fallback: number,
+) {
+  const value = appState?.[key];
+
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function zoomFromAppState(appState: Record<string, unknown> | undefined) {
+  const zoom = appState?.zoom;
+
+  if (
+    zoom &&
+    typeof zoom === "object" &&
+    "value" in zoom &&
+    typeof zoom.value === "number" &&
+    Number.isFinite(zoom.value) &&
+    zoom.value > 0
+  ) {
+    return zoom.value;
+  }
+
+  return 1;
+}
+
+function getVisibleCenterInsertionPosition(
+  appState: Record<string, unknown> | undefined,
+  insertionIndex: number,
+) {
+  const width = numberFromAppState(appState, "width", 0);
+  const height = numberFromAppState(appState, "height", 0);
+
+  if (width <= 0 || height <= 0) {
+    return {
+      x: 120 + (insertionIndex % 3) * 270,
+      y: 120 + Math.floor(insertionIndex / 3) * 130,
+    };
+  }
+
+  const zoom = zoomFromAppState(appState);
+  const offsetLeft = numberFromAppState(appState, "offsetLeft", 0);
+  const offsetTop = numberFromAppState(appState, "offsetTop", 0);
+  const scrollX = numberFromAppState(appState, "scrollX", 0);
+  const scrollY = numberFromAppState(appState, "scrollY", 0);
+  const clientX = width / 2 + offsetLeft;
+  const clientY = height / 2 + offsetTop;
+  const sceneCenterX = (clientX - offsetLeft) / zoom - scrollX;
+  const sceneCenterY = (clientY - offsetTop) / zoom - scrollY;
+
+  return {
+    x: sceneCenterX - TWILIO_COMPONENT_WIDTH / 2 + (insertionIndex % 3) * 32,
+    y:
+      sceneCenterY -
+      TWILIO_COMPONENT_HEIGHT / 2 +
+      Math.floor(insertionIndex / 3) * 32,
+  };
+}
 
 export function EditorView({
   project,
@@ -53,6 +122,11 @@ export function EditorView({
     scene: autosaveScene,
     enabled: Boolean(autosaveScene) && loadedSceneKey === sceneKey,
   });
+
+  useDialogEscape(
+    () => setPendingAction(null),
+    pendingAction === "twilio-components",
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -236,6 +310,33 @@ export function EditorView({
     setPendingAction(null);
   }, []);
 
+  const handleInsertTwilioComponent = useCallback(
+    (componentId: Parameters<typeof createTwilioComponentElements>[0]) => {
+      const currentScene = latestSceneRef.current;
+
+      if (!currentScene) {
+        return;
+      }
+
+      const insertionIndex = Math.floor(currentScene.elements.length / 2);
+      const insertedElements = createTwilioComponentElements(
+        componentId,
+        getVisibleCenterInsertionPosition(currentScene.appState, insertionIndex),
+      );
+      const nextScene = prepareSceneForExcalidraw({
+        ...currentScene,
+        elements: [...currentScene.elements, ...insertedElements],
+      });
+
+      latestSceneRef.current = nextScene;
+      setInitialData(nextScene);
+      setAutosaveScene(nextScene);
+      setSceneRevision((revision) => revision + 1);
+      setPendingAction(null);
+    },
+    [],
+  );
+
   const isBusy = isLeaving || isFileActionRunning;
 
   return (
@@ -256,6 +357,16 @@ export function EditorView({
           <strong>{title}</strong>
         </div>
         <div className="save-cluster">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("twilio-components")}
+            aria-label="Twilio components"
+            title="Twilio components"
+            disabled={isBusy || !initialData}
+          >
+            <Shapes size={16} />
+          </button>
           <button
             type="button"
             className="icon-button"
@@ -316,6 +427,7 @@ export function EditorView({
             key={`${sceneKey}/${sceneRevision}`}
             initialData={initialData as never}
             onChange={handleSceneChange as never}
+            aiEnabled={false}
           />
           {autosave.error ? <div className="save-error">{autosave.error}</div> : null}
         </main>
@@ -341,6 +453,50 @@ export function EditorView({
           onCancel={() => setPendingAction(null)}
           onSubmit={handleDuplicate}
         />
+      ) : null}
+      {pendingAction === "twilio-components" ? (
+        <div className="dialog-backdrop">
+          <section className="dialog twilio-component-dialog" role="dialog" aria-label="Twilio components">
+            <header className="dialog-header">
+              <h2>Twilio components</h2>
+            </header>
+            <div className="twilio-component-groups">
+              {TWILIO_COMPONENT_GROUPS.map((group) => (
+                <section className="twilio-component-group" key={group.title}>
+                  <h3>{group.title}</h3>
+                  <div className="twilio-component-grid">
+                    {group.componentIds.map((componentId) => {
+                      const component = getTwilioComponent(componentId);
+                      const colors = getTwilioComponentColors(component);
+
+                      return (
+                        <button
+                          key={component.id}
+                          type="button"
+                          className="twilio-component-option"
+                          onClick={() => handleInsertTwilioComponent(component.id)}
+                          aria-label={`Insert ${component.label}`}
+                        >
+                          <span
+                            className="twilio-component-swatch"
+                            style={{ backgroundColor: colors.background }}
+                            aria-hidden="true"
+                          />
+                          <span>{component.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+            <div className="dialog-actions">
+              <button type="button" onClick={() => setPendingAction(null)}>
+                Cancel
+              </button>
+            </div>
+          </section>
+        </div>
       ) : null}
       {pendingAction === "ai-modify" && latestSceneRef.current ? (
         <AiModifyDialog

@@ -6,12 +6,15 @@ import { EditorView } from "./EditorView";
 
 let editCount = 0;
 let echoInitialDataOnRender = false;
+let nextEditAppState: Record<string, unknown> | null = null;
 const initialDataRenders: unknown[] = [];
+const excalidrawPropsRenders: unknown[] = [];
 
 vi.mock("@excalidraw/excalidraw", () => ({
   Excalidraw: ({
     initialData,
     onChange,
+    aiEnabled,
   }: {
     initialData: { elements?: unknown[] };
     onChange: (
@@ -19,9 +22,11 @@ vi.mock("@excalidraw/excalidraw", () => ({
       appState: Record<string, unknown>,
       files: Record<string, unknown>,
     ) => void;
+    aiEnabled?: boolean;
   }) => (
     function MockExcalidraw() {
       initialDataRenders.push(initialData);
+      excalidrawPropsRenders.push({ aiEnabled });
 
       useEffect(() => {
         if (echoInitialDataOnRender) {
@@ -38,7 +43,10 @@ vi.mock("@excalidraw/excalidraw", () => ({
               editCount += 1;
               onChange(
                 [{ id: `changed-${editCount}` }],
-                { collaborators: new Map(), viewBackgroundColor: "#fff" },
+                nextEditAppState ?? {
+                  collaborators: new Map(),
+                  viewBackgroundColor: "#fff",
+                },
                 {},
               );
             }}
@@ -58,6 +66,7 @@ vi.mock("lucide-react", () => ({
   Download: () => <span aria-hidden="true">download</span>,
   Pencil: () => <span aria-hidden="true">pencil</span>,
   Save: () => <span aria-hidden="true">save</span>,
+  Shapes: () => <span aria-hidden="true">shapes</span>,
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -93,7 +102,9 @@ describe("EditorView", () => {
   beforeEach(() => {
     editCount = 0;
     echoInitialDataOnRender = false;
+    nextEditAppState = null;
     initialDataRenders.length = 0;
+    excalidrawPropsRenders.length = 0;
     vi.mocked(designApi.readDesign).mockReset();
     vi.mocked(designApi.renameDesign).mockReset();
     vi.mocked(designApi.duplicateDesign).mockReset();
@@ -201,6 +212,29 @@ describe("EditorView", () => {
 
     await waitFor(() => expect(initialDataRenders.length).toBeGreaterThan(1));
     expect(new Set(initialDataRenders).size).toBe(1);
+  });
+
+  it("disables Excalidraw built-in AI tools inside the embedded editor", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+
+    expect(excalidrawPropsRenders.at(-1)).toEqual({ aiEnabled: false });
   });
 
   it("stays in the editor and surfaces save errors when leaving with pending edits", async () => {
@@ -633,6 +667,169 @@ describe("EditorView", () => {
           elements: [{ id: "modified" }],
         }),
       ),
+    );
+  });
+
+  it("inserts Twilio architecture components into the current design", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+    vi.mocked(designApi.writeDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Mock Excalidraw (0)")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    await user.click(screen.getByRole("button", { name: "Insert Twilio Orchestrator" }));
+
+    expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(designApi.writeDesign).toHaveBeenCalledWith(
+        "App",
+        "Flow.excalidraw",
+        expect.objectContaining({
+          elements: expect.arrayContaining([
+            expect.objectContaining({ text: "Twilio Orchestrator" }),
+          ]),
+        }),
+      ),
+    );
+  });
+
+  it("shows Twilio components grouped by product area", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Mock Excalidraw (0)")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+
+    expect(screen.getByRole("heading", { name: "Channels" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Trust & Identity" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Conversations Suite" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Contact Center" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Compute & Integrations" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Segment Stack" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Email API" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Segment CDP" })).toBeVisible();
+  });
+
+  it("closes the Twilio components dialog when Escape is pressed", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Mock Excalidraw (0)")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    const dialog = screen.getByRole("dialog", { name: "Twilio components" });
+
+    await user.keyboard("{Escape}");
+
+    expect(dialog).not.toBeInTheDocument();
+  });
+
+  it("inserts Twilio architecture components near the visible canvas center", async () => {
+    const user = userEvent.setup();
+    nextEditAppState = {
+      collaborators: new Map(),
+      viewBackgroundColor: "#fff",
+      width: 1000,
+      height: 800,
+      offsetLeft: 0,
+      offsetTop: 0,
+      scrollX: -400,
+      scrollY: -300,
+      zoom: { value: 2 },
+    };
+
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await user.click(await screen.findByRole("button", { name: "Edit scene" }));
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    await user.click(screen.getByRole("button", { name: "Insert Twilio Orchestrator" }));
+
+    const lastInitialData = initialDataRenders[
+      initialDataRenders.length - 1
+    ] as { elements?: Array<Record<string, unknown>> };
+    const insertedBox = lastInitialData.elements?.find(
+      (element) => element.type === "rectangle",
+    );
+
+    expect(insertedBox).toEqual(
+      expect.objectContaining({
+        x: 535,
+        y: 457,
+      }),
     );
   });
 

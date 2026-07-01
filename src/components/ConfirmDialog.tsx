@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import { useDialogEscape } from "./useDialogEscape";
 
 type ConfirmDialogProps = {
   title: string;
@@ -18,6 +19,8 @@ export function ConfirmDialog({
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const errorId = useId();
+
+  useDialogEscape(onCancel, !isPending);
 
   async function handleConfirm() {
     setError(null);

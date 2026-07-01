@@ -2,7 +2,14 @@ import mermaid from "mermaid";
 import { useEffect, useId, useState } from "react";
 import { validateMermaidSource } from "../lib/mermaidSource";
 
-mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+mermaid.initialize({
+  startOnLoad: false,
+  securityLevel: "strict",
+  theme: "default",
+  themeVariables: {
+    edgeLabelBackground: "#ffffff",
+  },
+});
 
 type MermaidPreviewProps = {
   source: string;

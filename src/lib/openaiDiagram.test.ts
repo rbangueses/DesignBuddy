@@ -298,6 +298,57 @@ describe("openaiDiagram", () => {
         description: "simple process",
       }),
     ).resolves.toBe("flowchart LR\n  A[Start] --> B[Done]\n");
+
+    const requestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[0]?.[1]?.body),
+    ) as {
+      max_output_tokens: number;
+      reasoning: { effort: string };
+      input: Array<{
+        role: string;
+        content: Array<{ text: string }>;
+      }>;
+    };
+    const systemMessage = requestBody.input.find((item) => item.role === "system");
+    const systemText = systemMessage?.content[0]?.text ?? "";
+
+    expect(requestBody.max_output_tokens).toBe(4_000);
+    expect(requestBody.reasoning.effort).toBe("low");
+    expect(systemText).toContain("8 to 12 nodes maximum");
+  });
+
+  it("keeps Mermaid reasoning low across quality levels", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        output_text: "flowchart LR\n  A[Start] --> B[Done]\n",
+      }),
+    } as Response);
+
+    await generateMermaidFlowchart({
+      apiKey: "sk-test",
+      model: "gpt-5.4-mini",
+      quality: "balanced",
+      description: "routing flow",
+    });
+    await generateMermaidFlowchart({
+      apiKey: "sk-test",
+      model: "gpt-5.4-mini",
+      quality: "high",
+      description: "architecture flow",
+    });
+
+    const balancedRequestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[0]?.[1]?.body),
+    ) as { max_output_tokens: number; reasoning: { effort: string } };
+    const highRequestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[1]?.[1]?.body),
+    ) as { max_output_tokens: number; reasoning: { effort: string } };
+
+    expect(balancedRequestBody.max_output_tokens).toBe(8_000);
+    expect(highRequestBody.max_output_tokens).toBe(12_000);
+    expect(balancedRequestBody.reasoning.effort).toBe("low");
+    expect(highRequestBody.reasoning.effort).toBe("low");
   });
 
   it("rejects non-flowchart Mermaid output", async () => {

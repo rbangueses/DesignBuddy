@@ -10,6 +10,7 @@ import {
 } from "../lib/aiSettings";
 import { modifyExcalidrawScene } from "../lib/openaiDiagram";
 import type { ExcalidrawScene } from "../types/excalidraw";
+import { useDialogEscape } from "./useDialogEscape";
 
 type AiModifyDialogProps = {
   settings: AiSettings;
@@ -93,6 +94,8 @@ export function AiModifyDialog({
 
     onCancel();
   }
+
+  useDialogEscape(handleCancel);
 
   return (
     <div className="dialog-backdrop" role="presentation">

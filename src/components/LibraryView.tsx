@@ -40,7 +40,12 @@ export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
 
   const closeDialog = () => setPendingAction(null);
   const designImportFilters = [
-    { name: "BanguesesDraw designs", extensions: ["excalidraw", "json", "mmd"] },
+    {
+      name: "BanguesesDraw designs",
+      extensions: aiSettings.enableMermaid
+        ? ["excalidraw", "json", "mmd"]
+        : ["excalidraw", "json"],
+    },
   ];
 
   const handleImportDesign = async () => {
@@ -95,6 +100,7 @@ export function LibraryView({ openError, onOpenDesign }: LibraryViewProps) {
             designs={library.filteredDesigns}
             totalDesignCount={library.designs.length}
             filter={library.filter}
+            enableMermaid={aiSettings.enableMermaid}
             onFilterChange={library.setFilter}
             onCreateDesign={() => setPendingAction({ type: "create-design" })}
             onCreateMermaidDesign={() =>
