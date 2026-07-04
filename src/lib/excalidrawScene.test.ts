@@ -57,4 +57,25 @@ describe("Excalidraw scene normalization", () => {
       200,
     );
   });
+
+  it("removes AI-provided element indices so Excalidraw can assign safe ordering", () => {
+    const scene = prepareSceneForExcalidraw({
+      type: "excalidraw",
+      elements: [
+        {
+          id: "generated-text",
+          type: "text",
+          index: "c10",
+          text: "Generated label",
+          originalText: "Generated label",
+          width: 180,
+          height: 24,
+        },
+      ],
+      appState: {},
+      files: {},
+    });
+
+    expect(scene.elements[0]).not.toHaveProperty("index");
+  });
 });

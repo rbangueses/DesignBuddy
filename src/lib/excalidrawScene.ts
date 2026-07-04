@@ -72,25 +72,26 @@ function normalizeElement(element: unknown) {
   }
 
   const candidate = element as Record<string, unknown>;
+  const { index: _index, ...withoutIndex } = candidate;
 
-  if (candidate.type !== "text") {
-    return element;
+  if (withoutIndex.type !== "text") {
+    return withoutIndex;
   }
 
-  const estimatedWidth = estimateTextWidth(candidate);
+  const estimatedWidth = estimateTextWidth(withoutIndex);
 
   if (!estimatedWidth) {
-    return element;
+    return withoutIndex;
   }
 
-  const currentWidth = typeof candidate.width === "number" ? candidate.width : 0;
+  const currentWidth = typeof withoutIndex.width === "number" ? withoutIndex.width : 0;
 
   if (currentWidth >= estimatedWidth) {
-    return element;
+    return withoutIndex;
   }
 
   return {
-    ...candidate,
+    ...withoutIndex,
     width: estimatedWidth,
   };
 }
