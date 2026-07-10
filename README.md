@@ -207,6 +207,38 @@ npm exec tauri icon -- src-tauri/icons/source-icon.png -o src-tauri/icons
 
 The Tauri build script watches the key icon files so `npm run tauri:dev` refreshes icon resources after icon changes.
 
+## Prerequisites
+
+You do not need developer tools to run a downloaded GitHub Actions artifact. You only need these prerequisites if you want to clone the repo, run the app from source, or build it locally.
+
+Required for local development:
+
+- Node.js 22 or newer
+- npm
+- Rust stable, installed with Cargo available on your terminal `PATH`
+- Tauri system dependencies for your OS
+
+Check that Rust is available before running Tauri commands:
+
+```bash
+cargo --version
+rustc --version
+```
+
+If those commands fail with `command not found` or `No such file or directory`, install Rust from rustup and restart your terminal:
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
+
+On macOS, also install Xcode Command Line Tools if prompted:
+
+```bash
+xcode-select --install
+```
+
+On Windows, install Rust from rustup and use the default MSVC toolchain. You may also need Microsoft Visual Studio Build Tools with the **Desktop development with C++** workload.
+
 ## Install
 
 ### macOS
@@ -225,12 +257,7 @@ If Windows SmartScreen warns about the installer, choose **More info** and **Run
 
 ## Build From Source
 
-Requirements:
-
-- Node.js 22 or newer
-- npm
-- Rust stable
-- Tauri system dependencies for your OS
+Before building from source, complete the prerequisites above.
 
 Clone the repository:
 
