@@ -78,6 +78,10 @@ function normalizeElement(element: unknown) {
     return withoutIndex;
   }
 
+  if (typeof withoutIndex.containerId === "string" && withoutIndex.containerId) {
+    return withoutIndex;
+  }
+
   const estimatedWidth = estimateTextWidth(withoutIndex);
 
   if (!estimatedWidth) {

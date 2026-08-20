@@ -58,6 +58,43 @@ describe("Excalidraw scene normalization", () => {
     );
   });
 
+  it("does not resize text bound to a container when saving or reopening", () => {
+    const scene = prepareSceneForStorage({
+      type: "excalidraw",
+      elements: [
+        {
+          id: "container",
+          type: "ellipse",
+          x: 10,
+          y: 20,
+          width: 180,
+          height: 120,
+          boundElements: [{ id: "label", type: "text" }],
+        },
+        {
+          id: "label",
+          type: "text",
+          text: "Twilio WhatsApp",
+          originalText: "Twilio WhatsApp",
+          containerId: "container",
+          x: 56,
+          y: 68,
+          width: 64,
+          height: 48,
+        },
+      ],
+      appState: {},
+      files: {},
+    });
+
+    expect(scene.elements[1]).toMatchObject({
+      id: "label",
+      containerId: "container",
+      width: 64,
+      height: 48,
+    });
+  });
+
   it("removes AI-provided element indices so Excalidraw can assign safe ordering", () => {
     const scene = prepareSceneForExcalidraw({
       type: "excalidraw",
