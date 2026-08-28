@@ -26,6 +26,7 @@ type AnalyzeDiagramPromptInput = {
   apiKey: string;
   model: string;
   description: string;
+  preferredKind?: AiOutputKind;
   signal?: AbortSignal;
   timeoutMs?: number;
 };
@@ -615,9 +616,19 @@ export async function analyzeDiagramPrompt({
   apiKey,
   model,
   description,
+  preferredKind,
   signal,
   timeoutMs,
 }: AnalyzeDiagramPromptInput): Promise<DiagramPromptAnalysis> {
+  const prompt = preferredKind
+    ? [
+        `The user selected ${preferredKind} as the desired output type.`,
+        "Analyze and optimize for that selected type unless the prompt is clearly impossible for it.",
+        "",
+        description,
+      ].join("\n")
+    : description;
+
   const responseText = await callOpenAiForText({
     apiKey,
     model,
@@ -625,7 +636,7 @@ export async function analyzeDiagramPrompt({
     signal,
     timeoutMs,
     systemPrompt: PROMPT_ANALYSIS_SYSTEM_PROMPT,
-    prompt: description,
+    prompt,
     maxOutputTokens: 1_500,
     reasoningEffort: "low",
   });

@@ -114,6 +114,44 @@ describe("openaiDiagram", () => {
     expect(systemText).toContain("optimizedPrompt");
   });
 
+  it("passes the selected output type into prompt analysis", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        output_text: JSON.stringify({
+          recommendedKind: "excalidraw",
+          recommendedQuality: "balanced",
+          recommendedBudget: "standard",
+          expectedOutputTokenRange: "10k-20k",
+          completionRisk: "low",
+          reason: "The user selected Excalidraw for a visual layout.",
+          optimizedPrompt: "Create a compact Excalidraw diagram.",
+        }),
+      }),
+    } as Response);
+
+    await analyzeDiagramPrompt({
+      apiKey: "sk-test",
+      model: "gpt-5.4-mini",
+      description: "Show a contact center architecture",
+      preferredKind: "excalidraw",
+    });
+
+    const requestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[0]?.[1]?.body),
+    ) as {
+      input: Array<{
+        role: string;
+        content: Array<{ text: string }>;
+      }>;
+    };
+    const userMessage = requestBody.input.find((item) => item.role === "user");
+    const userText = userMessage?.content[0]?.text ?? "";
+
+    expect(userText).toContain("The user selected excalidraw");
+    expect(userText).toContain("Show a contact center architecture");
+  });
+
   it("allows larger outputs for balanced and high quality diagrams", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,

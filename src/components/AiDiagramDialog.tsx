@@ -117,16 +117,12 @@ export function AiDiagramDialog({
         apiKey: settings.apiKey.trim(),
         model,
         description: promptToAnalyze,
+        preferredKind: effectiveOutputMode,
         signal: abortController.signal,
       });
-      const nextOutputMode =
-        enableMermaid || nextAnalysis.recommendedKind === "excalidraw"
-          ? nextAnalysis.recommendedKind
-          : "excalidraw";
 
-      setAnalysis({ ...nextAnalysis, recommendedKind: nextOutputMode });
+      setAnalysis(nextAnalysis);
       setOptimizedPrompt(nextAnalysis.optimizedPrompt);
-      setOutputMode(nextOutputMode);
       setQuality(nextAnalysis.recommendedQuality);
       setOutputBudget(nextAnalysis.recommendedBudget);
     } catch (analyzeError) {
