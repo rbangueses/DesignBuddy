@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-04
+
+- Changed the macOS GitHub Actions artifact to publish a DMG instead of a raw `.app` bundle directory.
+- Updated macOS install instructions to explain that the downloaded GitHub artifact is a ZIP containing the DMG.
+
 ## 2026-08-28
 
 - Fixed AI diagram prompt analysis changing the selected output type from Excalidraw to Mermaid when the AI recommendation preferred Mermaid.

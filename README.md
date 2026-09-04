@@ -259,7 +259,7 @@ On Windows, install Rust from rustup and use the default MSVC toolchain. You may
 
 ### macOS
 
-Download the `DesignBuddy-macos` artifact from GitHub Actions. Unzip it, then drag `DesignBuddy.app` into Applications.
+Download the `DesignBuddy-macos` artifact from GitHub Actions. GitHub downloads it as a ZIP file, so unzip it first. The unzipped folder contains a `.dmg` file. Open the DMG, then drag `DesignBuddy.app` into Applications.
 
 If macOS warns that Apple could not verify the app is free of malware, right-click the app in Applications and choose **Open**. This can happen because the app is ad-hoc signed but not notarized with an Apple Developer ID yet.
 
@@ -349,6 +349,7 @@ The workflows run on pushes to `main` and can also be started manually from GitH
 3. Select **macOS Build** or **Windows Build**.
 4. Click **Run workflow**.
 5. Download `DesignBuddy-macos` or `DesignBuddy-windows` when the run finishes.
+6. For macOS, unzip the downloaded artifact and open the `.dmg` inside it. For Windows, unzip the artifact and use the installer in the `nsis` folder.
 
 ## Tech Stack
 
