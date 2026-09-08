@@ -94,8 +94,21 @@ function normalizeElement(element: unknown) {
     return withoutIndex;
   }
 
+  const deltaWidth = estimatedWidth - currentWidth;
+  const currentX = typeof withoutIndex.x === "number" ? withoutIndex.x : null;
+  const textAlign = withoutIndex.textAlign;
+  const nextX =
+    currentX === null
+      ? undefined
+      : textAlign === "center"
+        ? currentX - deltaWidth / 2
+        : textAlign === "right"
+          ? currentX - deltaWidth
+          : undefined;
+
   return {
     ...withoutIndex,
+    ...(nextX === undefined ? {} : { x: nextX }),
     width: estimatedWidth,
   };
 }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-08
+
+- Fixed unbound centered Excalidraw text shifting after save/reopen when DesignBuddy expands narrow text elements for reliable rendering.
+
 ## 2026-09-04
 
 - Changed the macOS GitHub Actions artifact to publish a DMG instead of a raw `.app` bundle directory.

@@ -58,6 +58,35 @@ describe("Excalidraw scene normalization", () => {
     );
   });
 
+  it("keeps centered unbound text visually centered when expanding its width", () => {
+    const scene = prepareSceneForStorage({
+      type: "excalidraw",
+      elements: [
+        {
+          id: "label",
+          type: "text",
+          text: "Twilio Phone Number\nTwilio Voice",
+          originalText: "Twilio Phone Number\nTwilio Voice",
+          x: 420,
+          y: 300,
+          width: 80,
+          height: 54,
+          textAlign: "center",
+          containerId: null,
+        },
+      ],
+      appState: {},
+      files: {},
+    });
+
+    const label = scene.elements[0] as Record<string, unknown>;
+
+    expect(label.width).toBeGreaterThan(80);
+    expect(
+      Number(label.x) + Number(label.width) / 2,
+    ).toBeCloseTo(460);
+  });
+
   it("does not resize text bound to a container when saving or reopening", () => {
     const scene = prepareSceneForStorage({
       type: "excalidraw",
