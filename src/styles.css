@@ -575,7 +575,17 @@ textarea {
 }
 
 .twilio-component-dialog {
-  width: min(620px, calc(100vw - 32px));
+  width: min(1040px, calc(100vw - 48px));
+  max-height: none;
+  overflow: visible;
+  padding: 16px;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .dialog-header h2 {
@@ -584,13 +594,19 @@ textarea {
 }
 
 .twilio-component-groups {
-  max-height: min(68vh, 620px);
-  overflow: auto;
-  padding-right: 4px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.35fr) minmax(0, 0.9fr);
+  gap: 14px;
+}
+
+.twilio-component-column {
+  display: grid;
+  align-content: start;
+  gap: 24px;
 }
 
 .twilio-component-group {
-  margin-bottom: 16px;
+  margin: 0;
 }
 
 .twilio-component-group h3 {
@@ -603,19 +619,23 @@ textarea {
 
 .twilio-component-grid {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+
+.twilio-component-column--2 .twilio-component-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
 }
 
 .twilio-component-option {
-  min-height: 44px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
   border: 1px solid #d7d7d0;
   border-radius: 6px;
   background: #ffffff;
-  padding: 9px 10px;
+  padding: 7px 10px;
   color: #202124;
   text-align: left;
   cursor: pointer;
@@ -625,11 +645,61 @@ textarea {
   background: #f4f4f0;
 }
 
+.twilio-component-option kbd {
+  margin-left: auto;
+  min-width: 24px;
+  border: 1px solid #c9c8c1;
+  border-radius: 4px;
+  background: #f4f4f0;
+  padding: 2px 5px;
+  color: #3c4043;
+  font-family: inherit;
+  font-size: 11px;
+  text-align: center;
+}
+
 .twilio-component-swatch {
   width: 12px;
   height: 12px;
   flex: 0 0 auto;
   border-radius: 999px;
+}
+
+.twilio-component-help {
+  margin: -6px 0 16px;
+  color: #5f6368;
+  font-size: 13px;
+}
+
+.twilio-shortcut-settings {
+  margin: -2px 0 16px;
+}
+
+.twilio-shortcut-settings .settings-help {
+  margin: 0;
+}
+
+.twilio-shortcut-option {
+  min-height: 40px;
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  margin: 0 !important;
+  border: 1px solid #d7d7d0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 7px 10px;
+  color: #202124 !important;
+}
+
+.twilio-shortcut-option input {
+  width: 36px !important;
+  min-width: 36px;
+  margin-left: auto;
+  padding: 5px !important;
+  border-radius: 5px;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .segmented-control {
@@ -723,6 +793,18 @@ textarea {
     grid-template-columns: minmax(0, 1fr);
     gap: 3px;
   }
+
+  .twilio-component-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .twilio-component-column {
+    display: contents;
+  }
+
+  .twilio-component-column--2 .twilio-component-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 560px) {
@@ -761,6 +843,14 @@ textarea {
 
   .dialog-actions button {
     flex: 1 1 140px;
+  }
+
+  .twilio-component-dialog {
+    width: 100%;
+  }
+
+  .twilio-component-groups {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

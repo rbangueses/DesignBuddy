@@ -27,6 +27,15 @@ import {
   TWILIO_COMPONENT_HEIGHT,
   TWILIO_COMPONENT_WIDTH,
 } from "../lib/twilioComponents";
+import {
+  DEFAULT_TWILIO_SHORTCUT_SETTINGS,
+  findTwilioComponentByShortcut,
+  getDuplicateTwilioShortcutKeys,
+  loadTwilioShortcutSettings,
+  normalizeTwilioShortcut,
+  saveTwilioShortcutSettings,
+  type TwilioShortcutSettings,
+} from "../lib/twilioShortcuts";
 import type { ExcalidrawScene } from "../types/excalidraw";
 import { AiModifyDialog } from "./AiModifyDialog";
 import { ExportMenu } from "./ExportMenu";
@@ -46,6 +55,35 @@ type EditorViewProps = {
 };
 
 type PendingAction = "rename" | "duplicate" | "ai-modify" | "twilio-components" | null;
+
+type CanvasPointerPosition = {
+  clientX: number;
+  clientY: number;
+};
+
+const [
+  communicationsGroup,
+  trustAndIdentityGroup,
+  conversationsSuiteGroup,
+  builderToolsGroup,
+  dataGroup,
+] = TWILIO_COMPONENT_GROUPS;
+
+const TWILIO_COMPONENT_GROUP_COLUMNS = [
+  [communicationsGroup],
+  [conversationsSuiteGroup, dataGroup, trustAndIdentityGroup],
+  [builderToolsGroup],
+];
+
+function isEditableElement(target: EventTarget | null) {
+  return (
+    target instanceof HTMLElement &&
+    (target.isContentEditable ||
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "SELECT")
+  );
+}
 
 function numberFromAppState(
   appState: Record<string, unknown> | undefined,
@@ -107,6 +145,28 @@ function getVisibleCenterInsertionPosition(
   };
 }
 
+function getPointerInsertionPosition(
+  appState: Record<string, unknown> | undefined,
+  pointer: CanvasPointerPosition,
+) {
+  const zoom = zoomFromAppState(appState);
+  const offsetLeft = numberFromAppState(appState, "offsetLeft", 0);
+  const offsetTop = numberFromAppState(appState, "offsetTop", 0);
+  const scrollX = numberFromAppState(appState, "scrollX", 0);
+  const scrollY = numberFromAppState(appState, "scrollY", 0);
+
+  return {
+    x:
+      (pointer.clientX - offsetLeft) / zoom -
+      scrollX -
+      TWILIO_COMPONENT_WIDTH / 2,
+    y:
+      (pointer.clientY - offsetTop) / zoom -
+      scrollY -
+      TWILIO_COMPONENT_HEIGHT / 2,
+  };
+}
+
 export function EditorView({
   project,
   fileName,
@@ -122,7 +182,15 @@ export function EditorView({
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
   const [sceneRevision, setSceneRevision] = useState(0);
   const [aiSettings] = useState<AiSettings>(() => loadAiSettings());
+  const [twilioShortcutSettings, setTwilioShortcutSettings] =
+    useState<TwilioShortcutSettings>(() => loadTwilioShortcutSettings());
+  const [isCustomizingTwilioShortcuts, setIsCustomizingTwilioShortcuts] =
+    useState(false);
+  const [twilioShortcutError, setTwilioShortcutError] = useState<string | null>(
+    null,
+  );
   const latestSceneRef = useRef<ExcalidrawScene | null>(null);
+  const canvasPointerRef = useRef<CanvasPointerPosition | null>(null);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
   const autosave = useAutosave({
@@ -131,11 +199,6 @@ export function EditorView({
     scene: autosaveScene,
     enabled: Boolean(autosaveScene) && loadedSceneKey === sceneKey,
   });
-
-  useDialogEscape(
-    () => setPendingAction(null),
-    pendingAction === "twilio-components",
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -354,7 +417,9 @@ export function EditorView({
       const insertionIndex = Math.floor(currentScene.elements.length / 2);
       const insertedElements = createTwilioComponentElements(
         componentId,
-        getVisibleCenterInsertionPosition(currentScene.appState, insertionIndex),
+        canvasPointerRef.current
+          ? getPointerInsertionPosition(currentScene.appState, canvasPointerRef.current)
+          : getVisibleCenterInsertionPosition(currentScene.appState, insertionIndex),
       );
       const nextScene = prepareSceneForExcalidraw({
         ...currentScene,
@@ -366,9 +431,106 @@ export function EditorView({
       setAutosaveScene(nextScene);
       setSceneRevision((revision) => revision + 1);
       setPendingAction(null);
+      setIsCustomizingTwilioShortcuts(false);
+      setTwilioShortcutError(null);
+      setTwilioShortcutSettings(loadTwilioShortcutSettings());
     },
     [],
   );
+
+  const updateTwilioShortcut = useCallback(
+    (componentId: Parameters<typeof createTwilioComponentElements>[0], value: string) => {
+      setTwilioShortcutSettings((settings) => ({
+        ...settings,
+        shortcuts: {
+          ...settings.shortcuts,
+          [componentId]: normalizeTwilioShortcut(value),
+        },
+      }));
+      setTwilioShortcutError(null);
+    },
+    [],
+  );
+
+  const handleSaveTwilioShortcuts = useCallback(() => {
+    const duplicateKeys = getDuplicateTwilioShortcutKeys(twilioShortcutSettings);
+
+    if (duplicateKeys.length > 0) {
+      setTwilioShortcutError("Each component needs a unique shortcut.");
+      return;
+    }
+
+    saveTwilioShortcutSettings(twilioShortcutSettings);
+    setIsCustomizingTwilioShortcuts(false);
+    setTwilioShortcutError(null);
+  }, [twilioShortcutSettings]);
+
+  const closeTwilioComponents = useCallback(() => {
+    setPendingAction(null);
+    setIsCustomizingTwilioShortcuts(false);
+    setTwilioShortcutError(null);
+    setTwilioShortcutSettings(loadTwilioShortcutSettings());
+  }, []);
+
+  useDialogEscape(closeTwilioComponents, pendingAction === "twilio-components");
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!initialData || isEditableElement(event.target)) {
+        return;
+      }
+
+      const opensPalette =
+        event.key === "§" ||
+        (event.metaKey && event.shiftKey && event.key.toLowerCase() === "t");
+
+      if (opensPalette) {
+        event.preventDefault();
+        setPendingAction("twilio-components");
+        setIsCustomizingTwilioShortcuts(false);
+        setTwilioShortcutError(null);
+        return;
+      }
+
+      const component = findTwilioComponentByShortcut(
+        twilioShortcutSettings.shortcuts,
+        event.key,
+      );
+      const isPaletteShortcut =
+        pendingAction === "twilio-components" && !isCustomizingTwilioShortcuts;
+      const isDirectShortcut =
+        pendingAction === null &&
+        event.shiftKey &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey;
+
+      if (component && isPaletteShortcut) {
+        event.preventDefault();
+        handleInsertTwilioComponent(component.id);
+        return;
+      }
+
+      if (component && isDirectShortcut) {
+        event.preventDefault();
+        handleInsertTwilioComponent(component.id);
+        return;
+      }
+
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+        return;
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [
+    handleInsertTwilioComponent,
+    initialData,
+    isCustomizingTwilioShortcuts,
+    pendingAction,
+    twilioShortcutSettings,
+  ]);
 
   const isBusy = isLeaving || isFileActionRunning;
 
@@ -463,7 +625,15 @@ export function EditorView({
       {loadError ? (
         <main className="empty-state">{loadError}</main>
       ) : initialData ? (
-        <main className="canvas-wrap">
+        <main
+          className="canvas-wrap"
+          onMouseMove={(event) => {
+            canvasPointerRef.current = {
+              clientX: event.clientX,
+              clientY: event.clientY,
+            };
+          }}
+        >
           <Excalidraw
             key={`${sceneKey}/${sceneRevision}`}
             initialData={initialData as never}
@@ -497,44 +667,119 @@ export function EditorView({
       ) : null}
       {pendingAction === "twilio-components" ? (
         <div className="dialog-backdrop">
-          <section className="dialog twilio-component-dialog" role="dialog" aria-label="Twilio components">
+          <section
+            className="dialog twilio-component-dialog"
+            role="dialog"
+            aria-label="Twilio components"
+          >
             <header className="dialog-header">
               <h2>Twilio components</h2>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => {
+                  setIsCustomizingTwilioShortcuts((isCustomizing) => !isCustomizing);
+                  setTwilioShortcutError(null);
+                }}
+              >
+                {isCustomizingTwilioShortcuts ? "Back to palette" : "Customize shortcuts"}
+              </button>
             </header>
+            {isCustomizingTwilioShortcuts ? (
+              <section className="twilio-shortcut-settings">
+                <p className="settings-help">
+                  These keys select components in this palette. From the canvas, use Shift
+                  plus a key to insert that component directly.
+                </p>
+              </section>
+            ) : (
+              <p className="twilio-component-help">
+                Press a component key to insert it. From the canvas, press Shift plus the key
+                badge to insert a component directly. Cmd+Shift+T reopens this palette.
+              </p>
+            )}
             <div className="twilio-component-groups">
-              {TWILIO_COMPONENT_GROUPS.map((group) => (
-                <section className="twilio-component-group" key={group.title}>
-                  <h3>{group.title}</h3>
-                  <div className="twilio-component-grid">
-                    {group.componentIds.map((componentId) => {
-                      const component = getTwilioComponent(componentId);
-                      const colors = getTwilioComponentColors(component);
+              {TWILIO_COMPONENT_GROUP_COLUMNS.map((groups, columnIndex) => (
+                <div
+                  className={`twilio-component-column twilio-component-column--${columnIndex + 1}`}
+                  key={`column-${columnIndex}`}
+                >
+                  {groups.map((group) => (
+                    <section className="twilio-component-group" key={group.title}>
+                      <h3>{group.title}</h3>
+                      <div className="twilio-component-grid">
+                        {group.componentIds.map((componentId) => {
+                          const component = getTwilioComponent(componentId);
+                          const colors = getTwilioComponentColors(component);
 
-                      return (
-                        <button
-                          key={component.id}
-                          type="button"
-                          className="twilio-component-option"
-                          onClick={() => handleInsertTwilioComponent(component.id)}
-                          aria-label={`Insert ${component.label}`}
-                        >
-                          <span
-                            className="twilio-component-swatch"
-                            style={{ backgroundColor: colors.background }}
-                            aria-hidden="true"
-                          />
-                          <span>{component.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                          return isCustomizingTwilioShortcuts ? (
+                            <label className="twilio-shortcut-option" key={component.id}>
+                              <span
+                                className="twilio-component-swatch"
+                                style={{ backgroundColor: colors.background }}
+                                aria-hidden="true"
+                              />
+                              <span>{component.label}</span>
+                              <input
+                                aria-label={`Shortcut for ${component.label}`}
+                                value={twilioShortcutSettings.shortcuts[component.id].toUpperCase()}
+                                onChange={(event) =>
+                                  updateTwilioShortcut(component.id, event.target.value)
+                                }
+                                maxLength={1}
+                              />
+                            </label>
+                          ) : (
+                            <button
+                              key={component.id}
+                              type="button"
+                              className="twilio-component-option"
+                              onClick={() => handleInsertTwilioComponent(component.id)}
+                              aria-label={`Insert ${component.label}`}
+                            >
+                              <span
+                                className="twilio-component-swatch"
+                                style={{ backgroundColor: colors.background }}
+                                aria-hidden="true"
+                              />
+                              <span>{component.label}</span>
+                              <kbd>{twilioShortcutSettings.shortcuts[component.id].toUpperCase()}</kbd>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  ))}
+                </div>
               ))}
             </div>
+            {twilioShortcutError ? (
+              <p className="form-error" role="alert">
+                {twilioShortcutError}
+              </p>
+            ) : null}
             <div className="dialog-actions">
-              <button type="button" onClick={() => setPendingAction(null)}>
+              {isCustomizingTwilioShortcuts ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTwilioShortcutSettings({
+                      shortcuts: { ...DEFAULT_TWILIO_SHORTCUT_SETTINGS.shortcuts },
+                    });
+                    setTwilioShortcutError(null);
+                  }}
+                >
+                  Reset shortcuts
+                </button>
+              ) : null}
+              <button type="button" onClick={closeTwilioComponents}>
                 Cancel
               </button>
+              {isCustomizingTwilioShortcuts ? (
+                <button type="button" onClick={handleSaveTwilioShortcuts}>
+                  Save shortcuts
+                </button>
+              ) : null}
             </div>
           </section>
         </div>

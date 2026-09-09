@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { EditorView } from "./EditorView";
@@ -803,14 +803,213 @@ describe("EditorView", () => {
 
     await user.click(screen.getByRole("button", { name: "Twilio components" }));
 
-    expect(screen.getByRole("heading", { name: "Channels" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Communications" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Trust & Identity" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Conversations Suite" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Contact Center" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Compute & Integrations" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Segment Stack" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Builder Tools" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Data" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Insert Email API" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Twilio" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Sync" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Insert Segment CDP" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Knowledge" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Insert Event Streams" })).toBeVisible();
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent),
+    ).toEqual([
+      "Communications",
+      "Conversations Suite",
+      "Data",
+      "Trust & Identity",
+      "Builder Tools",
+    ]);
+  });
+
+  it("opens the Twilio component palette with the section shortcut", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "§" });
+
+    expect(screen.getByRole("dialog", { name: "Twilio components" })).toBeVisible();
+  });
+
+  it("inserts a component with its binding while the palette is open", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "§" });
+    fireEvent.keyDown(window, { key: "v" });
+
+    expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
+  });
+
+  it("uses palette bindings even when Excalidraw already handled the key event", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "§" });
+    const event = new KeyboardEvent("keydown", {
+      bubbles: true,
+      cancelable: true,
+      key: "v",
+    });
+    event.preventDefault();
+    window.dispatchEvent(event);
+
+    expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
+  });
+
+  it("inserts a component directly on the canvas with Shift plus its binding", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "V", shiftKey: true });
+
+    expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
+  });
+
+  it("does not insert a component when Shift is pressed on its own", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "Shift", shiftKey: true });
+
+    expect(screen.getByText("Mock Excalidraw (0)")).toBeVisible();
+  });
+
+  it("explains the Shift shortcut for direct canvas insertion", async () => {
+    const user = userEvent.setup();
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    expect(
+      screen.getByText(/From the canvas, press Shift plus the key badge/),
+    ).toBeVisible();
+  });
+
+  it("discards unsaved shortcut edits when the palette is cancelled", async () => {
+    const user = userEvent.setup();
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    await user.click(screen.getByRole("button", { name: "Customize shortcuts" }));
+    const voiceShortcut = screen.getByLabelText("Shortcut for Prog. Voice");
+    await user.clear(voiceShortcut);
+    await user.type(voiceShortcut, "z");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    await user.click(screen.getByRole("button", { name: "Customize shortcuts" }));
+
+    expect(screen.getByLabelText("Shortcut for Prog. Voice")).toHaveValue("V");
   });
 
   it("closes the Twilio components dialog when Escape is pressed", async () => {
@@ -844,16 +1043,58 @@ describe("EditorView", () => {
   });
 
   it("inserts Twilio architecture components near the visible canvas center", async () => {
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        initialScene={{
+          type: "excalidraw",
+          elements: [],
+          appState: {
+            width: 1000,
+            height: 800,
+            offsetLeft: 0,
+            offsetTop: 0,
+            scrollX: -400,
+            scrollY: -300,
+            zoom: { value: 2 },
+          },
+          files: {},
+        }}
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(window, { key: "O", shiftKey: true });
+
+    const lastInitialData = initialDataRenders[
+      initialDataRenders.length - 1
+    ] as { elements?: Array<Record<string, unknown>> };
+    const insertedBox = lastInitialData.elements?.find(
+      (element) => element.type === "rectangle",
+    );
+
+    expect(insertedBox).toEqual(
+      expect.objectContaining({
+        x: 535,
+        y: 457,
+      }),
+    );
+  });
+
+  it("inserts a Twilio component at the last canvas pointer position", async () => {
     const user = userEvent.setup();
     nextEditAppState = {
       collaborators: new Map(),
       viewBackgroundColor: "#fff",
       width: 1000,
       height: 800,
-      offsetLeft: 0,
-      offsetTop: 0,
-      scrollX: -400,
-      scrollY: -300,
+      offsetLeft: 10,
+      offsetTop: 20,
+      scrollX: -100,
+      scrollY: 50,
       zoom: { value: 2 },
     };
 
@@ -875,8 +1116,10 @@ describe("EditorView", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
-    await user.click(screen.getByRole("button", { name: "Twilio components" }));
-    await user.click(screen.getByRole("button", { name: "Insert Twilio Orchestrator" }));
+    const canvas = document.querySelector(".canvas-wrap");
+    expect(canvas).not.toBeNull();
+    fireEvent.mouseMove(canvas as HTMLElement, { clientX: 410, clientY: 280 });
+    fireEvent.keyDown(window, { key: "V", shiftKey: true });
 
     const lastInitialData = initialDataRenders[
       initialDataRenders.length - 1
@@ -887,8 +1130,8 @@ describe("EditorView", () => {
 
     expect(insertedBox).toEqual(
       expect.objectContaining({
-        x: 535,
-        y: 457,
+        x: 185,
+        y: 37,
       }),
     );
   });

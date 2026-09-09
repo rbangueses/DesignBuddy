@@ -1,4 +1,5 @@
-type TwilioComponentId =
+export type TwilioComponentId =
+  | "twilio"
   | "orchestrator"
   | "messaging"
   | "voice"
@@ -21,12 +22,18 @@ type TwilioComponentId =
   | "segment-cdp"
   | "segment-connections"
   | "segment-profiles"
-  | "segment-engage";
+  | "segment-engage"
+  | "knowledge"
+  | "event-streams"
+  | "sync"
+  | "interconnect"
+  | "proxy";
 
 type TwilioComponent = {
   id: TwilioComponentId;
   label: string;
   tone?: "twilio" | "external";
+  shape?: "rectangle" | "ellipse";
 };
 
 type TwilioComponentGroup = {
@@ -51,6 +58,7 @@ type Position = {
 
 export const TWILIO_COMPONENT_WIDTH = 230;
 export const TWILIO_COMPONENT_HEIGHT = 86;
+const TWILIO_CORE_DIAMETER = 128;
 const LABEL_PADDING = 16;
 export const TWILIO_RED = "#F22F46";
 const TWILIO_DARK_RED = "#B5121B";
@@ -63,6 +71,11 @@ const TWILIO_LABEL_FONT_SIZE = 16;
 let idCounter = 0;
 
 export const TWILIO_COMPONENTS: TwilioComponent[] = [
+  {
+    id: "twilio",
+    label: "Twilio",
+    shape: "ellipse",
+  },
   {
     id: "orchestrator",
     label: "Twilio Orchestrator",
@@ -156,18 +169,40 @@ export const TWILIO_COMPONENTS: TwilioComponent[] = [
     id: "segment-engage",
     label: "Engage",
   },
+  {
+    id: "knowledge",
+    label: "Knowledge",
+  },
+  {
+    id: "event-streams",
+    label: "Event Streams",
+  },
+  {
+    id: "sync",
+    label: "Sync",
+  },
+  {
+    id: "interconnect",
+    label: "Interconnect",
+  },
+  {
+    id: "proxy",
+    label: "Proxy",
+  },
 ];
 
 export const TWILIO_COMPONENT_GROUPS: TwilioComponentGroup[] = [
   {
-    title: "Channels",
+    title: "Communications",
     componentIds: [
+      "twilio",
       "messaging",
       "voice",
       "sms",
       "whatsapp",
       "email-api",
       "recording",
+      "flex",
     ],
   },
   {
@@ -185,20 +220,27 @@ export const TWILIO_COMPONENT_GROUPS: TwilioComponentGroup[] = [
     ],
   },
   {
-    title: "Contact Center",
-    componentIds: ["flex", "studio", "taskrouter"],
+    title: "Builder Tools",
+    componentIds: [
+      "functions",
+      "assets",
+      "studio",
+      "taskrouter",
+      "sync",
+      "interconnect",
+      "proxy",
+      "third-party-api",
+    ],
   },
   {
-    title: "Compute & Integrations",
-    componentIds: ["functions", "assets", "third-party-api"],
-  },
-  {
-    title: "Segment Stack",
+    title: "Data",
     componentIds: [
       "segment-cdp",
       "segment-connections",
       "segment-profiles",
       "segment-engage",
+      "knowledge",
+      "event-streams",
     ],
   },
 ];
@@ -234,6 +276,12 @@ function nextId(componentId: TwilioComponentId, part: string) {
   return `twilio-${componentId}-${part}-${idCounter}`;
 }
 
+function getTwilioComponentDimensions(component: TwilioComponent) {
+  return component.shape === "ellipse"
+    ? { width: TWILIO_CORE_DIAMETER, height: TWILIO_CORE_DIAMETER }
+    : { width: TWILIO_COMPONENT_WIDTH, height: TWILIO_COMPONENT_HEIGHT };
+}
+
 export function createTwilioComponentElements(
   componentId: TwilioComponentId,
   position: Position,
@@ -241,15 +289,16 @@ export function createTwilioComponentElements(
   const component = getTwilioComponent(componentId);
   const colors = getTwilioComponentColors(component);
   const groupId = `twilio-${componentId}-${idCounter + 1}`;
+  const { width, height } = getTwilioComponentDimensions(component);
 
   return [
     {
       id: nextId(componentId, "box"),
-      type: "rectangle",
+      type: component.shape ?? "rectangle",
       x: position.x,
       y: position.y,
-      width: TWILIO_COMPONENT_WIDTH,
-      height: TWILIO_COMPONENT_HEIGHT,
+      width,
+      height,
       angle: 0,
       strokeColor: colors.stroke,
       backgroundColor: colors.background,
@@ -273,8 +322,10 @@ export function createTwilioComponentElements(
       id: nextId(componentId, "label"),
       type: "text",
       x: position.x + LABEL_PADDING,
-      y: position.y + 32,
-      width: TWILIO_COMPONENT_WIDTH - LABEL_PADDING * 2,
+      y:
+        position.y +
+        (component.shape === "ellipse" ? height / 2 - 12 : 32),
+      width: width - LABEL_PADDING * 2,
       height: 24,
       angle: 0,
       strokeColor: colors.label,

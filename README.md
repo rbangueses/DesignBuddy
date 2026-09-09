@@ -143,16 +143,19 @@ In the note editor:
 
 Inside Excalidraw, the standard Excalidraw shortcuts still apply, including tool shortcuts for selection, shapes, drawing, text, and pan/hand mode.
 
+For Twilio component templates, press `§` to open the picker. `Cmd+Shift+T` is also available as a keyboard-layout-friendly fallback. Once the picker is open, press the key badge shown on a component to add it. Use **Customize shortcuts** in the picker to change the bindings.
+
+To insert a component directly from an Excalidraw canvas, hold `Shift` and press that component's key badge. The Shift modifier leaves Excalidraw's usual unmodified shortcuts untouched.
+
 ## Twilio Component Templates
 
-The Excalidraw editor includes a Twilio components picker for quickly adding architecture blocks. Components are grouped by product area:
+The Excalidraw editor includes a large Twilio components picker for quickly adding architecture blocks. Components are grouped by product area and each displays its current keyboard binding:
 
-- Channels: Programmable Messaging, Programmable Voice, SMS, WhatsApp, Email API, Recording
+- Communications: Twilio, Programmable Messaging, Programmable Voice, SMS, WhatsApp, Email API, Recording, Flex
 - Trust & Identity: Verify, Lookup
 - Conversations Suite: Twilio Orchestrator, Conversation Relay, Twilio Agent Connect, Conversation Intelligence, Memory
-- Contact Center: Flex, Studio, TaskRouter
-- Compute & Integrations: Functions, Assets, 3rd Party API
-- Segment Stack: Segment CDP, Connections, Profiles, Engage
+- Builder Tools: Functions, Assets, Studio, TaskRouter, Sync, Interconnect, Proxy, 3rd Party API
+- Data: Segment CDP, Connections, Profiles, Engage, Knowledge, Event Streams
 
 Twilio-owned blocks use Twilio red. External dependencies such as `3rd Party API` use a separate yellow style.
 

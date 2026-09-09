@@ -41,6 +41,7 @@ describe("Twilio component library", () => {
 
   it("exposes a focused set of Twilio architecture components", () => {
     expect(TWILIO_COMPONENTS.map((component) => component.id)).toEqual([
+      "twilio",
       "orchestrator",
       "messaging",
       "voice",
@@ -64,6 +65,11 @@ describe("Twilio component library", () => {
       "segment-connections",
       "segment-profiles",
       "segment-engage",
+      "knowledge",
+      "event-streams",
+      "sync",
+      "interconnect",
+      "proxy",
     ]);
     expect(TWILIO_COMPONENTS.map((component) => component.label)).toEqual(
       expect.arrayContaining([
@@ -80,6 +86,11 @@ describe("Twilio component library", () => {
         "Connections",
         "Profiles",
         "Engage",
+        "Knowledge",
+        "Event Streams",
+        "Sync",
+        "Interconnect",
+        "Proxy",
       ]),
     );
   });
@@ -87,14 +98,16 @@ describe("Twilio component library", () => {
   it("organizes Twilio components into picker groups", () => {
     expect(TWILIO_COMPONENT_GROUPS).toEqual([
       {
-        title: "Channels",
+        title: "Communications",
         componentIds: [
+          "twilio",
           "messaging",
           "voice",
           "sms",
           "whatsapp",
           "email-api",
           "recording",
+          "flex",
         ],
       },
       {
@@ -112,23 +125,53 @@ describe("Twilio component library", () => {
         ],
       },
       {
-        title: "Contact Center",
-        componentIds: ["flex", "studio", "taskrouter"],
+        title: "Builder Tools",
+        componentIds: [
+          "functions",
+          "assets",
+          "studio",
+          "taskrouter",
+          "sync",
+          "interconnect",
+          "proxy",
+          "third-party-api",
+        ],
       },
       {
-        title: "Compute & Integrations",
-        componentIds: ["functions", "assets", "third-party-api"],
-      },
-      {
-        title: "Segment Stack",
+        title: "Data",
         componentIds: [
           "segment-cdp",
           "segment-connections",
           "segment-profiles",
           "segment-engage",
+          "knowledge",
+          "event-streams",
         ],
       },
     ]);
+  });
+
+  it("renders the Twilio core component as a circular red block", () => {
+    const elements = createTwilioComponentElements("twilio", { x: 120, y: 80 });
+
+    expect(elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "ellipse",
+          width: 128,
+          height: 128,
+          strokeColor: "#B5121B",
+          backgroundColor: "#F22F46",
+        }),
+        expect.objectContaining({
+          type: "text",
+          text: "Twilio",
+          x: 136,
+          y: 132,
+          width: 96,
+        }),
+      ]),
+    );
   });
 
   it("renders third-party APIs as external yellow blocks", () => {
