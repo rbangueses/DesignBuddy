@@ -57,9 +57,13 @@ DesignBuddy is a local-first desktop project workspace powered by Excalidraw. It
 
 ![DesignBuddy Mermaid converted to Excalidraw](docs/screenshots/mermaid-converted-excalidraw.png)
 
-### Twilio Components
+### Twilio Components And Shortcuts
 
-![DesignBuddy Twilio components picker](docs/screenshots/twilio-components.png)
+![DesignBuddy Twilio components picker with customizable shortcuts](docs/screenshots/twilio-components.png)
+
+### Twilio Shortcut Customization
+
+![DesignBuddy Twilio shortcut customization](docs/screenshots/twilio-shortcuts.png)
 
 ### Settings And Backup
 

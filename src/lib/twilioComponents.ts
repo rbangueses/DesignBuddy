@@ -61,11 +61,7 @@ export const TWILIO_COMPONENT_HEIGHT = 86;
 const TWILIO_CORE_DIAMETER = 128;
 const LABEL_PADDING = 16;
 export const TWILIO_RED = "#F22F46";
-const TWILIO_DARK_RED = "#B5121B";
-const TWILIO_LABEL_COLOR = "#ffffff";
-export const TWILIO_EXTERNAL_YELLOW = "#FACC15";
 const TWILIO_EXTERNAL_YELLOW_STROKE = "#B7791F";
-const TWILIO_EXTERNAL_LABEL_COLOR = "#1f2937";
 const TWILIO_LABEL_FONT_SIZE = 16;
 
 let idCounter = 0;
@@ -258,16 +254,16 @@ export function getTwilioComponent(componentId: TwilioComponentId) {
 export function getTwilioComponentColors(component: TwilioComponent) {
   if (component.tone === "external") {
     return {
-      background: TWILIO_EXTERNAL_YELLOW,
+      background: "transparent",
       stroke: TWILIO_EXTERNAL_YELLOW_STROKE,
-      label: TWILIO_EXTERNAL_LABEL_COLOR,
+      label: TWILIO_EXTERNAL_YELLOW_STROKE,
     };
   }
 
   return {
-    background: TWILIO_RED,
-    stroke: TWILIO_DARK_RED,
-    label: TWILIO_LABEL_COLOR,
+    background: "transparent",
+    stroke: TWILIO_RED,
+    label: TWILIO_RED,
   };
 }
 

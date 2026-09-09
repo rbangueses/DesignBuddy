@@ -21,8 +21,8 @@ describe("Twilio component library", () => {
       expect.arrayContaining([
         expect.objectContaining({
           type: "rectangle",
-          strokeColor: "#B5121B",
-          backgroundColor: "#F22F46",
+          strokeColor: "#F22F46",
+          backgroundColor: "transparent",
           fillStyle: "solid",
         }),
         expect.objectContaining({
@@ -30,7 +30,7 @@ describe("Twilio component library", () => {
           text: "Twilio Orchestrator",
           x: 136,
           y: 112,
-          strokeColor: "#ffffff",
+          strokeColor: "#F22F46",
           fontSize: 16,
           textAlign: "center",
           width: 198,
@@ -151,7 +151,7 @@ describe("Twilio component library", () => {
     ]);
   });
 
-  it("renders the Twilio core component as a circular red block", () => {
+  it("renders the Twilio core component as a circular red outline", () => {
     const elements = createTwilioComponentElements("twilio", { x: 120, y: 80 });
 
     expect(elements).toEqual(
@@ -160,8 +160,8 @@ describe("Twilio component library", () => {
           type: "ellipse",
           width: 128,
           height: 128,
-          strokeColor: "#B5121B",
-          backgroundColor: "#F22F46",
+          strokeColor: "#F22F46",
+          backgroundColor: "transparent",
         }),
         expect.objectContaining({
           type: "text",
@@ -174,7 +174,7 @@ describe("Twilio component library", () => {
     );
   });
 
-  it("renders third-party APIs as external yellow blocks", () => {
+  it("renders third-party APIs as external yellow outlines", () => {
     const elements = createTwilioComponentElements("third-party-api", {
       x: 120,
       y: 80,
@@ -185,11 +185,11 @@ describe("Twilio component library", () => {
         expect.objectContaining({
           type: "rectangle",
           strokeColor: "#B7791F",
-          backgroundColor: "#FACC15",
+          backgroundColor: "transparent",
         }),
         expect.objectContaining({
           type: "text",
-          strokeColor: "#1f2937",
+          strokeColor: "#B7791F",
         }),
       ]),
     );
