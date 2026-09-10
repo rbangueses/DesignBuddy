@@ -13,10 +13,10 @@ export function useDialogEscape(onCancel: () => void, isEnabled = true) {
       }
     }
 
-    document.addEventListener("keydown", handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown, true);
 
     return () => {
-      document.removeEventListener("keydown", handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
     };
   }, [isEnabled, onCancel]);
 }

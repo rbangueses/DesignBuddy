@@ -35,7 +35,10 @@ vi.mock("@excalidraw/excalidraw", () => ({
       }, [initialData, onChange]);
 
       return (
-        <div>
+        <div
+          data-testid="mock-excalidraw-canvas"
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <div>Mock Excalidraw ({initialData.elements?.length ?? 0})</div>
           <button
             type="button"
@@ -1040,6 +1043,35 @@ describe("EditorView", () => {
     await user.keyboard("{Escape}");
 
     expect(dialog).not.toBeInTheDocument();
+  });
+
+  it("closes the Twilio components dialog when the canvas consumes bubbling key events", async () => {
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    const canvas = screen.getByTestId("mock-excalidraw-canvas");
+
+    fireEvent.keyDown(canvas, { key: "§" });
+    expect(screen.getByRole("dialog", { name: "Twilio components" })).toBeVisible();
+
+    fireEvent.keyDown(canvas, { key: "Escape" });
+
+    expect(screen.queryByRole("dialog", { name: "Twilio components" })).not.toBeInTheDocument();
   });
 
   it("inserts Twilio architecture components near the visible canvas center", async () => {
