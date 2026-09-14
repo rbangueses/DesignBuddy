@@ -37,6 +37,21 @@ describe("Twilio component library", () => {
         }),
       ]),
     );
+    const [box, label] = elements;
+    expect(box.boundElements).toEqual([{ id: label.id, type: "text" }]);
+    expect(label.containerId).toBe(box.id);
+    expect(label.verticalAlign).toBe("middle");
+    expect(label.fontFamily).toBe(5);
+  });
+
+  it("uses the selected font for newly inserted component labels", () => {
+    const [, label] = createTwilioComponentElements(
+      "twilio",
+      { x: 120, y: 80 },
+      8,
+    );
+
+    expect(label.fontFamily).toBe(8);
   });
 
   it("exposes a focused set of Twilio architecture components", () => {

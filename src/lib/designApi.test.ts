@@ -56,6 +56,22 @@ describe("designApi", () => {
     });
   });
 
+  it("scans and restores explicitly selected backup artifacts", async () => {
+    invoke
+      .mockResolvedValueOnce({ artifacts: [], invalidFileCount: 0 })
+      .mockResolvedValueOnce({ addedCount: 1, copiedCount: 0, replacedCount: 0, skippedCount: 0, invalidFileCount: 0 });
+    const { designApi } = await import("./designApi");
+    await designApi.scanBackup("/tmp/DesignBuddy Backup");
+    await designApi.restoreBackup("/tmp/DesignBuddy Backup", [{
+      project: "App", fileName: "Flow.excalidraw", conflictResolution: "copy",
+    }]);
+    expect(invoke).toHaveBeenNthCalledWith(1, "scan_backup", { sourcePath: "/tmp/DesignBuddy Backup" });
+    expect(invoke).toHaveBeenNthCalledWith(2, "restore_backup", {
+      sourcePath: "/tmp/DesignBuddy Backup",
+      artifacts: [{ project: "App", fileName: "Flow.excalidraw", conflictResolution: "copy" }],
+    });
+  });
+
   it("calls write_design with scene content", async () => {
     const scene: ExcalidrawScene = {
       type: "excalidraw",

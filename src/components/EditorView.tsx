@@ -23,10 +23,17 @@ import {
   createTwilioComponentElements,
   getTwilioComponent,
   getTwilioComponentColors,
+  TWILIO_COMPONENT_FONT_OPTIONS,
   TWILIO_COMPONENT_GROUPS,
   TWILIO_COMPONENT_HEIGHT,
   TWILIO_COMPONENT_WIDTH,
+  type TwilioComponentFontFamily,
 } from "../lib/twilioComponents";
+import {
+  loadTwilioComponentSettings,
+  saveTwilioComponentSettings,
+  type TwilioComponentSettings,
+} from "../lib/twilioComponentSettings";
 import {
   DEFAULT_TWILIO_SHORTCUT_SETTINGS,
   findTwilioComponentByShortcut,
@@ -184,6 +191,8 @@ export function EditorView({
   const [aiSettings] = useState<AiSettings>(() => loadAiSettings());
   const [twilioShortcutSettings, setTwilioShortcutSettings] =
     useState<TwilioShortcutSettings>(() => loadTwilioShortcutSettings());
+  const [twilioComponentSettings, setTwilioComponentSettings] =
+    useState<TwilioComponentSettings>(() => loadTwilioComponentSettings());
   const [isCustomizingTwilioShortcuts, setIsCustomizingTwilioShortcuts] =
     useState(false);
   const [twilioShortcutError, setTwilioShortcutError] = useState<string | null>(
@@ -420,6 +429,7 @@ export function EditorView({
         canvasPointerRef.current
           ? getPointerInsertionPosition(currentScene.appState, canvasPointerRef.current)
           : getVisibleCenterInsertionPosition(currentScene.appState, insertionIndex),
+        twilioComponentSettings.fontFamily,
       );
       const nextScene = prepareSceneForExcalidraw({
         ...currentScene,
@@ -434,6 +444,15 @@ export function EditorView({
       setIsCustomizingTwilioShortcuts(false);
       setTwilioShortcutError(null);
       setTwilioShortcutSettings(loadTwilioShortcutSettings());
+    },
+    [twilioComponentSettings.fontFamily],
+  );
+
+  const updateTwilioComponentFont = useCallback(
+    (fontFamily: TwilioComponentFontFamily) => {
+      const settings = { fontFamily };
+      setTwilioComponentSettings(settings);
+      saveTwilioComponentSettings(settings);
     },
     [],
   );
@@ -672,18 +691,46 @@ export function EditorView({
             role="dialog"
             aria-label="Twilio components"
           >
-            <header className="dialog-header">
-              <h2>Twilio components</h2>
-              <button
-                type="button"
-                className="secondary-button"
-                onClick={() => {
-                  setIsCustomizingTwilioShortcuts((isCustomizing) => !isCustomizing);
-                  setTwilioShortcutError(null);
-                }}
-              >
-                {isCustomizingTwilioShortcuts ? "Back to palette" : "Customize shortcuts"}
-              </button>
+            <header className="dialog-header twilio-component-header">
+              <div className="twilio-component-title-row">
+                <h2>Twilio components</h2>
+                <div className="twilio-component-controls">
+                  <label className="twilio-component-font">
+                    <span>Font</span>
+                    <select
+                      aria-label="Default component font"
+                      value={twilioComponentSettings.fontFamily}
+                      onChange={(event) =>
+                        updateTwilioComponentFont(
+                          Number(event.target.value) as TwilioComponentFontFamily,
+                        )
+                      }
+                    >
+                      {TWILIO_COMPONENT_FONT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    className="secondary-button twilio-shortcuts-button"
+                    onClick={() => {
+                      setIsCustomizingTwilioShortcuts((isCustomizing) => !isCustomizing);
+                      setTwilioShortcutError(null);
+                    }}
+                  >
+                    {isCustomizingTwilioShortcuts ? "Back to palette" : "Customize shortcuts"}
+                  </button>
+                </div>
+              </div>
+              {!isCustomizingTwilioShortcuts ? (
+                <p className="twilio-component-help">
+                  Press a component key to insert it. From the canvas, press Shift plus the key
+                  badge to insert a component directly. Cmd+Shift+T reopens this palette.
+                </p>
+              ) : null}
             </header>
             {isCustomizingTwilioShortcuts ? (
               <section className="twilio-shortcut-settings">
@@ -692,12 +739,7 @@ export function EditorView({
                   plus a key to insert that component directly.
                 </p>
               </section>
-            ) : (
-              <p className="twilio-component-help">
-                Press a component key to insert it. From the canvas, press Shift plus the key
-                badge to insert a component directly. Cmd+Shift+T reopens this palette.
-              </p>
-            )}
+            ) : null}
             <div className="twilio-component-groups">
               {TWILIO_COMPONENT_GROUP_COLUMNS.map((groups, columnIndex) => (
                 <div

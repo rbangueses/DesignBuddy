@@ -553,6 +553,14 @@ textarea {
   white-space: nowrap;
 }
 
+.restore-dialog { width: min(720px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow: auto; }
+.restore-actions { display: flex; gap: 8px; margin: 12px 0; }
+.restore-project { border: 1px solid #deded8; border-radius: 6px; margin: 10px 0; padding: 8px 12px 12px; }
+.restore-project legend { font-weight: 600; padding: 0 4px; }
+.restore-artifact { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 7px 0; border-top: 1px solid #f0efeb; }
+.restore-artifact > label:first-child { overflow-wrap: anywhere; }
+.restore-conflict { display: flex; align-items: center; gap: 6px; color: #9a3412; font-size: 12px; white-space: nowrap; }
+
 .dialog textarea {
   resize: vertical;
 }
@@ -589,8 +597,63 @@ textarea {
 }
 
 .dialog-header h2 {
-  margin: 0 0 16px;
+  margin: 0;
   font-size: 24px;
+}
+
+.twilio-component-header {
+  display: block;
+  margin-bottom: 20px;
+}
+
+.twilio-component-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.twilio-component-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+
+.dialog .twilio-component-font {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: #3c4043;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.twilio-component-font select {
+  min-width: 150px;
+  min-height: 34px;
+  border: 1px solid #d7d7d0;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 5px 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+.twilio-shortcuts-button {
+  min-height: 34px;
+  border: 1px solid #d7d7d0;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #3c4043;
+  padding: 5px 10px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.twilio-shortcuts-button:hover {
+  background: #f4f4f0;
 }
 
 .twilio-component-groups {
@@ -666,13 +729,14 @@ textarea {
 }
 
 .twilio-component-help {
-  margin: -6px 0 16px;
+  margin: 7px 0 0;
   color: #5f6368;
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .twilio-shortcut-settings {
-  margin: -2px 0 16px;
+  margin: 0 0 16px;
 }
 
 .twilio-shortcut-settings .settings-help {
@@ -849,6 +913,20 @@ textarea {
     width: 100%;
   }
 
+  .twilio-component-header {
+    display: block;
+  }
+
+  .twilio-component-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .twilio-component-controls {
+    align-items: flex-end;
+    flex-wrap: wrap;
+  }
+
   .twilio-component-groups {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -955,11 +1033,6 @@ textarea {
 
 .canvas-wrap .excalidraw {
   height: calc(100vh - 56px);
-}
-
-.canvas-wrap .App-toolbar__extra-tools-trigger,
-.canvas-wrap .App-toolbar__extra-tools-dropdown {
-  display: none;
 }
 
 .mermaid-editor-grid {

@@ -828,6 +828,43 @@ describe("EditorView", () => {
     ]);
   });
 
+  it("uses the chosen default font for a newly inserted component", async () => {
+    const user = userEvent.setup();
+    vi.mocked(designApi.readDesign).mockResolvedValue({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [], appState: {}, files: {} },
+    });
+
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    await user.click(screen.getByRole("button", { name: "Twilio components" }));
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "Default component font" }),
+      "7",
+    );
+    await user.click(screen.getByRole("button", { name: "Insert Twilio" }));
+
+    const lastInitialData = initialDataRenders[
+      initialDataRenders.length - 1
+    ] as { elements?: Array<Record<string, unknown>> };
+    expect(lastInitialData.elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "text", text: "Twilio", fontFamily: 7 }),
+      ]),
+    );
+  });
+
   it("opens the Twilio component palette with the section shortcut", async () => {
     vi.mocked(designApi.readDesign).mockResolvedValue({
       project: "App",

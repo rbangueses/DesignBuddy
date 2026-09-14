@@ -1,6 +1,6 @@
 pub mod designs;
 
-use designs::{BackupResult, DesignKind, DesignScene, DesignSummary, ProjectSummary};
+use designs::{BackupResult, DesignKind, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
@@ -186,6 +186,22 @@ fn backup_library(app: tauri::AppHandle, target_path: String) -> Result<BackupRe
         .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn scan_backup(app: tauri::AppHandle, source_path: String) -> Result<RestorePreview, String> {
+    designs::scan_backup(&designs_root(&app)?, &PathBuf::from(source_path))
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn restore_backup(
+    app: tauri::AppHandle,
+    source_path: String,
+    artifacts: Vec<RestoreArtifact>,
+) -> Result<RestoreResult, String> {
+    designs::restore_backup(&designs_root(&app)?, &PathBuf::from(source_path), &artifacts)
+        .map_err(|error| error.to_string())
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -206,7 +222,9 @@ pub fn run() {
             import_design,
             export_design,
             export_drawio,
-            backup_library
+            backup_library,
+            scan_backup,
+            restore_backup
         ])
         .run(tauri::generate_context!())
         .expect("error while running DesignBuddy");

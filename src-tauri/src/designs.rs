@@ -20,6 +20,48 @@ pub struct BackupResult {
     pub file_count: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreArtifactPreview {
+    pub project: String,
+    pub file_name: String,
+    pub kind: DesignKind,
+    pub conflicts_with_existing: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RestorePreview {
+    pub artifacts: Vec<RestoreArtifactPreview>,
+    pub invalid_file_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub enum RestoreConflictResolution {
+    Copy,
+    Replace,
+    Skip,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreArtifact {
+    pub project: String,
+    pub file_name: String,
+    pub conflict_resolution: RestoreConflictResolution,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RestoreResult {
+    pub added_count: usize,
+    pub copied_count: usize,
+    pub replaced_count: usize,
+    pub skipped_count: usize,
+    pub invalid_file_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 struct ProjectMetadata {
@@ -504,6 +546,93 @@ pub fn backup_library(root: &Path, target: &Path) -> Result<BackupResult, Design
     })
 }
 
+fn read_design_content(path: &Path, kind: &DesignKind) -> Result<Value, DesignError> {
+    let content = match kind {
+        DesignKind::Excalidraw | DesignKind::Note => serde_json::from_str(&fs::read_to_string(path)?)?,
+        DesignKind::Mermaid => json!({ "source": fs::read_to_string(path)? }),
+    };
+    validate_content(kind, &content)?;
+    Ok(content)
+}
+
+fn read_backup_project_metadata(project_path: &Path) -> Result<ProjectMetadata, DesignError> {
+    for path in [
+        project_path.join(PROJECT_METADATA_FILE),
+        project_path.join(LEGACY_PROJECT_METADATA_FILE),
+    ] {
+        if path.exists() {
+            return Ok(serde_json::from_str(&fs::read_to_string(path)?)?);
+        }
+    }
+    Ok(ProjectMetadata::default())
+}
+
+/// Lists valid backup artifacts without changing the live library.
+pub fn scan_backup(root: &Path, source: &Path) -> Result<RestorePreview, DesignError> {
+    ensure_root(root)?;
+    if !source.is_dir() || source.starts_with(root) {
+        return Err(DesignError::InvalidBackupTarget("Choose a backup folder outside the live design library.".to_string()));
+    }
+
+    let mut artifacts = Vec::new();
+    let mut invalid_file_count = 0;
+    for project_entry in fs::read_dir(source)? {
+        let project_entry = project_entry?;
+        if !project_entry.file_type()?.is_dir() { continue; }
+        let project = match project_entry.file_name().into_string().ok().and_then(|name| validate_name(&name).ok()) {
+            Some(name) => name,
+            None => { invalid_file_count += 1; continue; }
+        };
+        for file_entry in fs::read_dir(project_entry.path())? {
+            let file_entry = file_entry?;
+            if !file_entry.file_type()?.is_file() { continue; }
+            let path = file_entry.path();
+            let Some(kind) = kind_from_path(&path) else { continue; };
+            let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else { invalid_file_count += 1; continue; };
+            if design_file_name(file_name).is_err() || read_design_content(&path, &kind).is_err() {
+                invalid_file_count += 1;
+                continue;
+            }
+            artifacts.push(RestoreArtifactPreview {
+                conflicts_with_existing: root.join(&project).join(file_name).exists(),
+                project: project.clone(), file_name: file_name.to_string(), kind,
+            });
+        }
+    }
+    artifacts.sort_by(|a, b| (a.project.to_lowercase(), a.file_name.to_lowercase()).cmp(&(b.project.to_lowercase(), b.file_name.to_lowercase())));
+    Ok(RestorePreview { artifacts, invalid_file_count })
+}
+
+/// Restores only explicitly selected, previously previewed backup artifacts.
+pub fn restore_backup(root: &Path, source: &Path, artifacts: &[RestoreArtifact]) -> Result<RestoreResult, DesignError> {
+    let preview = scan_backup(root, source)?;
+    let valid = preview.artifacts.into_iter().map(|item| ((item.project.clone(), item.file_name.clone()), item)).collect::<std::collections::HashMap<_, _>>();
+    let mut result = RestoreResult { added_count: 0, copied_count: 0, replaced_count: 0, skipped_count: 0, invalid_file_count: preview.invalid_file_count };
+    for item in artifacts {
+        let key = (item.project.clone(), item.file_name.clone());
+        let Some(preview_item) = valid.get(&key) else { result.skipped_count += 1; continue; };
+        let source_file = source.join(&item.project).join(&item.file_name);
+        let content = read_design_content(&source_file, &preview_item.kind)?;
+        let project_dir = root.join(&item.project);
+        let new_project = !project_dir.exists();
+        fs::create_dir_all(&project_dir)?;
+        if new_project {
+            let metadata = read_backup_project_metadata(&source.join(&item.project))?;
+            write_project_metadata(&project_dir, &metadata)?;
+        }
+        let existing = project_dir.join(&item.file_name).exists();
+        if existing && matches!(item.conflict_resolution, RestoreConflictResolution::Skip) { result.skipped_count += 1; continue; }
+        let target = if existing && matches!(item.conflict_resolution, RestoreConflictResolution::Copy) {
+            unique_design_path(root, &item.project, &design_name_from_file(&item.file_name), &preview_item.kind)?
+        } else { project_dir.join(&item.file_name) };
+        let tmp = target.with_extension(format!("{}.restore-tmp", extension_for_kind(&preview_item.kind)));
+        match preview_item.kind { DesignKind::Mermaid => fs::write(&tmp, content["source"].as_str().unwrap_or_default())?, _ => fs::write(&tmp, serde_json::to_string_pretty(&content)?)? }
+        fs::rename(tmp, target)?;
+        if existing { if matches!(item.conflict_resolution, RestoreConflictResolution::Replace) { result.replaced_count += 1; } else { result.copied_count += 1; } } else { result.added_count += 1; }
+    }
+    Ok(result)
+}
+
 pub fn duplicate_project(
     root: &Path,
     source_name: &str,
@@ -955,6 +1084,49 @@ mod tests {
             .join(PROJECT_METADATA_FILE)
             .exists());
         assert!(!backup_root.join("Reference").join("notes.md").exists());
+
+        fs::remove_dir_all(root).unwrap();
+        fs::remove_dir_all(backup_root).unwrap();
+    }
+
+    #[test]
+    fn previews_and_restores_only_selected_backup_files_without_overwriting_by_default() {
+        let root = test_root("restore-live");
+        let backup_root = test_root("restore-backup");
+        create_project(&root, "App").unwrap();
+        create_design(&root, "App", "Flow", DesignKind::Excalidraw).unwrap();
+
+        fs::create_dir_all(backup_root.join("App")).unwrap();
+        let restored_scene = json!({
+            "type": "excalidraw", "version": 2, "source": "test",
+            "elements": [{"id": "backup", "type": "ellipse"}], "appState": {}, "files": {}
+        });
+        fs::write(
+            backup_root.join("App").join("Flow.excalidraw"),
+            serde_json::to_string(&restored_scene).unwrap(),
+        ).unwrap();
+        fs::write(backup_root.join("App").join("New.mmd"), "flowchart LR\n  A --> B\n").unwrap();
+        fs::write(backup_root.join("App").join("Broken.excalidraw"), "{}").unwrap();
+
+        let preview = scan_backup(&root, &backup_root).unwrap();
+        assert_eq!(preview.artifacts.len(), 2);
+        assert_eq!(preview.invalid_file_count, 1);
+        assert!(preview.artifacts.iter().any(|item| item.file_name == "Flow.excalidraw" && item.conflicts_with_existing));
+
+        let result = restore_backup(&root, &backup_root, &[
+            RestoreArtifact { project: "App".to_string(), file_name: "Flow.excalidraw".to_string(), conflict_resolution: RestoreConflictResolution::Copy },
+            RestoreArtifact { project: "App".to_string(), file_name: "New.mmd".to_string(), conflict_resolution: RestoreConflictResolution::Copy },
+        ]).unwrap();
+        assert_eq!(result.copied_count, 1);
+        assert_eq!(result.added_count, 1);
+        assert_eq!(read_design(&root, "App", "Flow Copy.excalidraw").unwrap().content["elements"][0]["id"], "backup");
+        assert!(root.join("App").join("New.mmd").exists());
+
+        let replaced = restore_backup(&root, &backup_root, &[
+            RestoreArtifact { project: "App".to_string(), file_name: "Flow.excalidraw".to_string(), conflict_resolution: RestoreConflictResolution::Replace },
+        ]).unwrap();
+        assert_eq!(replaced.replaced_count, 1);
+        assert_eq!(read_design(&root, "App", "Flow.excalidraw").unwrap().content["elements"][0]["id"], "backup");
 
         fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(backup_root).unwrap();

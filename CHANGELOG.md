@@ -1,5 +1,15 @@
 # Changelog
 
+## 2026-09-14
+
+- Added selectable local-backup restore: choose individual artifacts by project, preview conflicts, and keep both, replace, or skip each conflicting file.
+- Added `H` to start a presentation focus mode that automatically keeps the selected project visible, or to show every project again without undoing that visibility choice.
+- Made Twilio component labels native bound labels, keeping them centered when a component is moved, resized, or edited.
+- Added a persisted component-font preference with Excalifont as the default; component labels can also use Comic Shanns, Lilita One, Nunito, Virgil, sans serif, or monospace.
+- Refined the Twilio component palette controls for clearer font selection and shortcut customization.
+- Restored Excalidraw's additional-tools menu, including drawing and style controls that are moved there in current Excalidraw releases.
+- Updated the TypeScript resolver configuration so the standard production build works with current TypeScript versions.
+
 ## 2026-09-09
 
 - Added customizable keyboard shortcuts for Twilio component templates, including `§` and `Cmd+Shift+T` to open the component palette.

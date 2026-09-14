@@ -11,6 +11,34 @@ export type BackupResult = {
   fileCount: number;
 };
 
+export type RestoreConflictResolution = "copy" | "replace" | "skip";
+
+export type RestoreArtifactPreview = {
+  project: string;
+  fileName: string;
+  kind: DesignKind;
+  conflictsWithExisting: boolean;
+};
+
+export type RestorePreview = {
+  artifacts: RestoreArtifactPreview[];
+  invalidFileCount: number;
+};
+
+export type RestoreArtifact = {
+  project: string;
+  fileName: string;
+  conflictResolution: RestoreConflictResolution;
+};
+
+export type RestoreResult = {
+  addedCount: number;
+  copiedCount: number;
+  replacedCount: number;
+  skippedCount: number;
+  invalidFileCount: number;
+};
+
 export type DesignKind = "excalidraw" | "mermaid" | "note";
 
 export type MermaidDesignContent = {

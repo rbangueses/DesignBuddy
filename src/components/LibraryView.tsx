@@ -1,5 +1,5 @@
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDesignLibrary } from "../hooks/useDesignLibrary";
 import {
   loadAiSettings,
@@ -13,12 +13,14 @@ import {
 } from "../lib/backupSettings";
 import { designApi } from "../lib/designApi";
 import type { DesignSummary } from "../types/designs";
+import type { RestorePreview } from "../types/designs";
 import { AiDiagramDialog } from "./AiDiagramDialog";
 import { AiSettingsDialog } from "./AiSettingsDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DesignList } from "./DesignList";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { RenameDialog } from "./RenameDialog";
+import { RestoreBackupDialog } from "./RestoreBackupDialog";
 
 type LibraryViewProps = {
   initialSelectedProject?: string | null;
@@ -35,6 +37,7 @@ type PendingAction =
   | { type: "create-mermaid-design" }
   | { type: "create-ai-design" }
   | { type: "ai-settings" }
+  | { type: "restore-backup"; sourcePath: string; preview: RestorePreview }
   | { type: "rename-project"; project: string }
   | { type: "duplicate-project"; project: string }
   | { type: "delete-project"; project: string }
@@ -101,11 +104,26 @@ export function LibraryView({
     );
   }, [presentationMode]);
 
+  const togglePresentationMode = useCallback(() => {
+    if (!presentationMode && library.selectedProject) {
+      const selectedProject = library.projects.find(
+        (project) => project.name === library.selectedProject,
+      );
+
+      if (selectedProject?.visibleInPresentationMode !== true) {
+        void library
+          .setProjectVisibility(library.selectedProject, true)
+          .catch(() => undefined);
+      }
+    }
+
+    setPresentationMode((currentMode) => !currentMode);
+  }, [library, presentationMode]);
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (
         pendingAction ||
-        !library.selectedProject ||
         event.metaKey ||
         event.ctrlKey ||
         event.altKey ||
@@ -114,7 +132,12 @@ export function LibraryView({
         return;
       }
 
-      if (event.key === "1") {
+      if (event.key.toLowerCase() === "h") {
+        event.preventDefault();
+        togglePresentationMode();
+      } else if (!library.selectedProject) {
+        return;
+      } else if (event.key === "1") {
         event.preventDefault();
         setPendingAction({ type: "create-note" });
       } else if (event.key === "2") {
@@ -128,7 +151,7 @@ export function LibraryView({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [aiSettings.enableMermaid, library.selectedProject, pendingAction]);
+  }, [aiSettings.enableMermaid, pendingAction, togglePresentationMode]);
 
   const handleExportDesign = async (design: DesignSummary) => {
     const exportFilters =
@@ -158,15 +181,24 @@ export function LibraryView({
     return typeof selectedPath === "string" ? selectedPath : null;
   };
 
+  const handleChooseRestoreFolder = async () => {
+    const sourcePath = await open({
+      title: "Choose backup folder to restore",
+      directory: true,
+      multiple: false,
+    });
+    if (typeof sourcePath !== "string") return;
+    const preview = await designApi.scanBackup(sourcePath);
+    setPendingAction({ type: "restore-backup", sourcePath, preview });
+  };
+
   return (
     <div className="library-view">
       <ProjectSidebar
         projects={library.projects}
         selectedProject={library.selectedProject}
         presentationMode={presentationMode}
-        onTogglePresentationMode={() =>
-          setPresentationMode((currentMode) => !currentMode)
-        }
+        onTogglePresentationMode={togglePresentationMode}
         onSetProjectVisibility={(project, visible) => {
           void library.setProjectVisibility(project, visible).catch(() => undefined);
         }}
@@ -299,12 +331,27 @@ export function LibraryView({
           backupSettings={backupSettings}
           onCancel={closeDialog}
           onChooseBackupFolder={handleChooseBackupFolder}
+          onRestoreFromBackup={() => {
+            void handleChooseRestoreFolder().catch(() => undefined);
+          }}
           onBackUpNow={designApi.backupLibrary}
           onSave={(settings, nextBackupSettings) => {
             saveAiSettings(settings);
             saveBackupSettings(nextBackupSettings);
             setAiSettings(settings);
             setBackupSettings(nextBackupSettings);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "restore-backup" ? (
+        <RestoreBackupDialog
+          sourcePath={pendingAction.sourcePath}
+          preview={pendingAction.preview}
+          onCancel={closeDialog}
+          onRestore={async (artifacts) => {
+            await designApi.restoreBackup(pendingAction.sourcePath, artifacts);
+            await library.refresh();
             closeDialog();
           }}
         />

@@ -58,6 +58,18 @@ type Position = {
 
 export const TWILIO_COMPONENT_WIDTH = 230;
 export const TWILIO_COMPONENT_HEIGHT = 86;
+export const TWILIO_COMPONENT_FONT_OPTIONS = [
+  { value: 5, label: "Excalifont" },
+  { value: 8, label: "Comic Shanns" },
+  { value: 7, label: "Lilita One" },
+  { value: 6, label: "Nunito" },
+  { value: 1, label: "Virgil (classic)" },
+  { value: 2, label: "Sans serif" },
+  { value: 3, label: "Monospace" },
+] as const;
+export type TwilioComponentFontFamily =
+  (typeof TWILIO_COMPONENT_FONT_OPTIONS)[number]["value"];
+export const DEFAULT_TWILIO_COMPONENT_FONT_FAMILY: TwilioComponentFontFamily = 5;
 const TWILIO_CORE_DIAMETER = 128;
 const LABEL_PADDING = 16;
 export const TWILIO_RED = "#F22F46";
@@ -281,15 +293,18 @@ function getTwilioComponentDimensions(component: TwilioComponent) {
 export function createTwilioComponentElements(
   componentId: TwilioComponentId,
   position: Position,
+  fontFamily: TwilioComponentFontFamily = DEFAULT_TWILIO_COMPONENT_FONT_FAMILY,
 ): Element[] {
   const component = getTwilioComponent(componentId);
   const colors = getTwilioComponentColors(component);
   const groupId = `twilio-${componentId}-${idCounter + 1}`;
   const { width, height } = getTwilioComponentDimensions(component);
+  const boxId = nextId(componentId, "box");
+  const labelId = nextId(componentId, "label");
 
   return [
     {
-      id: nextId(componentId, "box"),
+      id: boxId,
       type: component.shape ?? "rectangle",
       x: position.x,
       y: position.y,
@@ -309,13 +324,13 @@ export function createTwilioComponentElements(
       version: 1,
       versionNonce: idCounter + 2,
       isDeleted: false,
-      boundElements: null,
+      boundElements: [{ id: labelId, type: "text" }],
       updated: Date.now(),
       link: null,
       locked: false,
     },
     {
-      id: nextId(componentId, "label"),
+      id: labelId,
       type: "text",
       x: position.x + LABEL_PADDING,
       y:
@@ -342,10 +357,13 @@ export function createTwilioComponentElements(
       locked: false,
       text: component.label,
       fontSize: TWILIO_LABEL_FONT_SIZE,
-      fontFamily: 1,
+      fontFamily,
       textAlign: "center",
       verticalAlign: "middle",
-      containerId: null,
+      // Excalidraw labels are individual text elements, but binding makes this
+      // one a native label of the shape: it moves, resizes, and stays centered
+      // with the component instead of behaving like a loose grouped object.
+      containerId: boxId,
       originalText: component.label,
       lineHeight: 1.25,
     },

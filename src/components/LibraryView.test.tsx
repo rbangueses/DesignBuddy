@@ -305,14 +305,35 @@ describe("LibraryView", () => {
     expect(within(projectsNav).getByText("Reference Architectures")).toBeVisible();
     expect(within(projectsNav).queryByText("Client B")).not.toBeInTheDocument();
     expect(screen.getByText("1 private project hidden")).toBeVisible();
-
-    await user.click(
-      screen.getByRole("button", {
-        name: "Show Client A in presentation mode",
-      }),
-    );
-
     expect(library.setProjectVisibility).toHaveBeenCalledWith("Client A", true);
+
+    await user.click(screen.getByRole("button", { name: "Stop presentation mode" }));
+    expect(library.setProjectVisibility).toHaveBeenCalledTimes(1);
+  });
+
+  it("toggles presentation mode with H outside text entry and dialogs", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    library.projects = [
+      { name: "Client A", designCount: 1, visibleInPresentationMode: false },
+      { name: "Reference", designCount: 1, visibleInPresentationMode: true },
+    ];
+    library.selectedProject = "Client A";
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+
+    await user.keyboard("h");
+    expect(screen.getByRole("button", { name: "Stop presentation mode" })).toBeVisible();
+    expect(screen.queryByText("Reference")).toBeVisible();
+    expect(library.setProjectVisibility).toHaveBeenCalledWith("Client A", true);
+
+    await user.keyboard("h");
+    expect(screen.getByRole("button", { name: "Start presentation mode" })).toBeVisible();
+    expect(library.setProjectVisibility).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("textbox", { name: "Filter designs" }));
+    await user.keyboard("h");
+    expect(screen.getByRole("button", { name: "Start presentation mode" })).toBeVisible();
   });
 
   it("creates a Mermaid flowchart in the selected project", async () => {
@@ -551,6 +572,37 @@ describe("LibraryView", () => {
       ),
     );
     expect(within(dialog).getByText("Backed up 2 files across 1 project.")).toBeVisible();
+  });
+
+  it("lets people select backup artifacts and choose a conflict resolution before restoring", async () => {
+    const user = userEvent.setup();
+    const library = makeLibraryState();
+    vi.mocked(useDesignLibrary).mockReturnValue(library);
+    vi.mocked(open).mockResolvedValue("/Users/me/DesignBuddy Backup");
+    const { designApi } = await import("../lib/designApi");
+    vi.spyOn(designApi, "scanBackup").mockResolvedValue({
+      artifacts: [
+        { project: "App", fileName: "Flow.excalidraw", kind: "excalidraw", conflictsWithExisting: true },
+        { project: "App", fileName: "New.mmd", kind: "mermaid", conflictsWithExisting: false },
+      ], invalidFileCount: 0,
+    });
+    vi.spyOn(designApi, "restoreBackup").mockResolvedValue({
+      addedCount: 1, copiedCount: 0, replacedCount: 1, skippedCount: 0, invalidFileCount: 0,
+    });
+    render(<LibraryView onOpenDesign={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: "Settings" }));
+    await user.click(screen.getByRole("button", { name: "Restore from backup" }));
+    const dialog = await screen.findByRole("dialog", { name: "Restore backup" });
+    await user.selectOptions(within(dialog).getByRole("combobox", { name: "Resolution for Flow.excalidraw" }), "replace");
+    await user.click(within(dialog).getByRole("button", { name: "Restore 2 selected" }));
+    await waitFor(() => expect(designApi.restoreBackup).toHaveBeenCalledWith(
+      "/Users/me/DesignBuddy Backup",
+      [
+        { project: "App", fileName: "Flow.excalidraw", conflictResolution: "replace" },
+        { project: "App", fileName: "New.mmd", conflictResolution: "copy" },
+      ],
+    ));
+    expect(library.refresh).toHaveBeenCalled();
   });
 
   it("allows cancelling a stuck AI generation request", async () => {

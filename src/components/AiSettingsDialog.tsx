@@ -20,6 +20,7 @@ type AiSettingsDialogProps = {
     projectCount: number;
     fileCount: number;
   }>;
+  onRestoreFromBackup: () => void;
   onSave: (settings: AiSettings, backupSettings: BackupSettings) => void;
 };
 
@@ -29,6 +30,7 @@ export function AiSettingsDialog({
   onCancel,
   onChooseBackupFolder,
   onBackUpNow,
+  onRestoreFromBackup,
   onSave,
 }: AiSettingsDialogProps) {
   const [apiKey, setApiKey] = useState(settings.apiKey);
@@ -198,6 +200,9 @@ export function AiSettingsDialog({
               disabled={isBackingUp || !backupFolderPath.trim()}
             >
               {isBackingUp ? "Backing up..." : "Back up now"}
+            </button>
+            <button type="button" onClick={onRestoreFromBackup} disabled={isBackingUp}>
+              Restore from backup
             </button>
             {backupStatus ? (
               <p className="settings-status">{backupStatus}</p>

@@ -67,6 +67,10 @@ describe("ProjectSidebar", () => {
     await user.click(screen.getByRole("button", { name: "Start presentation mode" }));
 
     expect(onTogglePresentationMode).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "Start presentation mode" })).toHaveAttribute(
+      "title",
+      "Start presentation mode. Press H to focus the selected project or show all projects.",
+    );
 
     await user.click(
       screen.getByRole("button", {

@@ -80,7 +80,7 @@ Project presentation visibility is also stored locally in each project folder us
 
 DesignBuddy can copy your local library to a backup folder from **Settings**. Choose a folder once, such as a Google Drive folder, then use **Back up now** whenever you want to copy the current projects and artifacts there.
 
-Backup is one-way in this version: local library to backup folder. It copies Excalidraw files, Mermaid files, note files, and project metadata, but it does not restore automatically or delete files from the backup folder. This keeps offline use unchanged and avoids accidental overwrites from cloud sync conflicts.
+Back up copies the local library to the selected folder. Restore lets you choose individual artifacts from a backup folder before anything is written. When a selected artifact has the same project and filename as a local one, you can keep both (the default, using a conflict-safe copy name), replace the local file, or skip it. Restore never deletes local artifacts, ignores invalid backup files, and preserves local project visibility settings for existing projects.
 
 ## Excalidraw Designs
 
@@ -115,7 +115,7 @@ Notes are intentionally project-scoped. Use them for discovery notes, customer c
 
 ## Presentation Mode
 
-The project sidebar includes a presentation mode toggle for screen-sharing. When enabled, private projects are hidden from the sidebar so their names are not visible and cannot be selected accidentally. The currently open project remains visible so you do not lose your place.
+The project sidebar includes a presentation mode toggle for screen-sharing. When enabled, private projects are hidden from the sidebar so their names are not visible and cannot be selected accidentally. Starting presentation mode automatically marks the currently selected project as visible, so it remains available while you navigate among other visible reference projects. Leaving presentation mode shows every project again without changing that visibility choice.
 
 Each project has an always-visible eye button for its presentation visibility flag. Use it to keep non-sensitive projects, such as reference architecture folders, visible even while presentation mode is enabled. Projects are private by default unless you mark them as visible.
 

@@ -59,6 +59,7 @@ export function ProjectSidebar({
   const presentationModeTitle = presentationMode
     ? "Stop presentation mode"
     : "Start presentation mode";
+  const presentationModeTooltip = `${presentationModeTitle}. Press H to focus the selected project or show all projects.`;
   const runProjectAction = (action: () => void) => {
     setOpenProjectActions(null);
     action();
@@ -74,7 +75,7 @@ export function ProjectSidebar({
             className={`icon-button ${presentationMode ? "privacy-active" : ""}`}
             onClick={onTogglePresentationMode}
             aria-label={presentationModeTitle}
-            title={presentationModeTitle}
+            title={presentationModeTooltip}
           >
             {presentationMode ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
