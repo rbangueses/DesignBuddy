@@ -53,6 +53,30 @@ export const designApi = {
       sourceFileName,
       targetName,
     }),
+  copyDesign: (
+    sourceProject: string,
+    sourceFileName: string,
+    targetProject: string,
+    targetName: string,
+  ) =>
+    invoke<DesignSummary>("copy_design", {
+      sourceProject,
+      sourceFileName,
+      targetProject,
+      targetName,
+    }),
+  moveDesign: (
+    sourceProject: string,
+    sourceFileName: string,
+    targetProject: string,
+    targetName: string,
+  ) =>
+    invoke<DesignSummary>("move_design", {
+      sourceProject,
+      sourceFileName,
+      targetProject,
+      targetName,
+    }),
   deleteDesign: (project: string, fileName: string) =>
     invoke<void>("delete_design", { project, fileName }),
   importDesign: (project: string, sourcePath: string) =>

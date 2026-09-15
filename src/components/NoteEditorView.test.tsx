@@ -6,6 +6,9 @@ import { NoteEditorView } from "./NoteEditorView";
 
 vi.mock("../lib/designApi", () => ({
   designApi: {
+    copyDesign: vi.fn(),
+    listProjects: vi.fn(),
+    moveDesign: vi.fn(),
     writeDesign: vi.fn(),
     renameDesign: vi.fn(),
     duplicateDesign: vi.fn(),

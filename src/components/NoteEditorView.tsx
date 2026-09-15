@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bold,
   Copy,
+  FolderInput,
   Heading1,
   Heading2,
   Italic,
@@ -19,6 +20,7 @@ import type React from "react";
 import { designApi } from "../lib/designApi";
 import type { NoteDesignContent } from "../types/designs";
 import { ExportMenu } from "./ExportMenu";
+import { MoveCopyDesignDialog } from "./MoveCopyDesignDialog";
 import { RenameDialog } from "./RenameDialog";
 
 type NoteEditorViewProps = {
@@ -34,7 +36,7 @@ type NoteEditorViewProps = {
 };
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
-type PendingAction = "rename" | "duplicate" | null;
+type PendingAction = "rename" | "duplicate" | "move" | null;
 
 function wrapNoteContent(content: JSONContent): NoteDesignContent {
   return {
@@ -150,12 +152,30 @@ export function NoteEditorView({
   );
 
   const handleDuplicate = useCallback(
-    async (name: string) => {
+    async (targetProject: string, name: string) => {
       setIsFileActionRunning(true);
 
       try {
         const latestContent = saveStatus === "unsaved" ? await saveNow() : draftContent;
-        const design = await designApi.duplicateDesign(project, fileName, name);
+        const design = targetProject === project
+          ? await designApi.duplicateDesign(project, fileName, name)
+          : await designApi.copyDesign(project, fileName, targetProject, name);
+        setPendingAction(null);
+        onDesignMoved(design.project, design.fileName, latestContent);
+      } finally {
+        setIsFileActionRunning(false);
+      }
+    },
+    [draftContent, fileName, onDesignMoved, project, saveNow, saveStatus],
+  );
+
+  const handleMove = useCallback(
+    async (targetProject: string, name: string) => {
+      setIsFileActionRunning(true);
+
+      try {
+        const latestContent = saveStatus === "unsaved" ? await saveNow() : draftContent;
+        const design = await designApi.moveDesign(project, fileName, targetProject, name);
         setPendingAction(null);
         onDesignMoved(design.project, design.fileName, latestContent);
       } finally {
@@ -247,6 +267,16 @@ export function NoteEditorView({
           >
             <Copy size={16} />
           </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("move")}
+            aria-label="Move note"
+            title="Move note"
+            disabled={isBusy}
+          >
+            <FolderInput size={16} />
+          </button>
           <ExportMenu
             disabled={isBusy}
             items={[
@@ -333,13 +363,21 @@ export function NoteEditorView({
         />
       ) : null}
       {pendingAction === "duplicate" ? (
-        <RenameDialog
-          title="Duplicate note"
-          inputLabel="Note name"
+        <MoveCopyDesignDialog
+          mode="copy"
+          sourceProject={project}
           initialName={`${title} Copy`}
-          submitLabel="Duplicate"
           onCancel={() => setPendingAction(null)}
           onSubmit={handleDuplicate}
+        />
+      ) : null}
+      {pendingAction === "move" ? (
+        <MoveCopyDesignDialog
+          mode="move"
+          sourceProject={project}
+          initialName={title}
+          onCancel={() => setPendingAction(null)}
+          onSubmit={handleMove}
         />
       ) : null}
     </div>

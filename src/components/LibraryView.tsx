@@ -18,6 +18,7 @@ import { AiDiagramDialog } from "./AiDiagramDialog";
 import { AiSettingsDialog } from "./AiSettingsDialog";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { DesignList } from "./DesignList";
+import { MoveCopyDesignDialog } from "./MoveCopyDesignDialog";
 import { ProjectSidebar } from "./ProjectSidebar";
 import { RenameDialog } from "./RenameDialog";
 import { RestoreBackupDialog } from "./RestoreBackupDialog";
@@ -43,6 +44,7 @@ type PendingAction =
   | { type: "delete-project"; project: string }
   | { type: "rename-design"; design: DesignSummary }
   | { type: "duplicate-design"; design: DesignSummary }
+  | { type: "move-design"; design: DesignSummary }
   | { type: "delete-design"; design: DesignSummary }
   | null;
 
@@ -240,6 +242,7 @@ export function LibraryView({
             onDuplicateDesign={(design) =>
               setPendingAction({ type: "duplicate-design", design })
             }
+            onMoveDesign={(design) => setPendingAction({ type: "move-design", design })}
             onDeleteDesign={(design) => setPendingAction({ type: "delete-design", design })}
             onOpenDesign={onOpenDesign}
           />
@@ -396,14 +399,27 @@ export function LibraryView({
         />
       ) : null}
       {pendingAction?.type === "duplicate-design" ? (
-        <RenameDialog
-          title="Duplicate design"
-          inputLabel="Design name"
+        <MoveCopyDesignDialog
+          mode="copy"
+          sourceProject={pendingAction.design.project}
+          projects={library.projects}
           initialName={`${pendingAction.design.name} Copy`}
-          submitLabel="Duplicate"
           onCancel={closeDialog}
-          onSubmit={async (name) => {
-            await library.duplicateDesign(pendingAction.design.fileName, name);
+          onSubmit={async (targetProject, name) => {
+            await library.copyDesign(pendingAction.design.fileName, targetProject, name);
+            closeDialog();
+          }}
+        />
+      ) : null}
+      {pendingAction?.type === "move-design" ? (
+        <MoveCopyDesignDialog
+          mode="move"
+          sourceProject={pendingAction.design.project}
+          projects={library.projects}
+          initialName={pendingAction.design.name}
+          onCancel={closeDialog}
+          onSubmit={async (targetProject, name) => {
+            await library.moveDesign(pendingAction.design.fileName, targetProject, name);
             closeDialog();
           }}
         />

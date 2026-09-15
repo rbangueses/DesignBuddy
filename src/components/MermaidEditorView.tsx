@@ -1,5 +1,5 @@
 import { save } from "@tauri-apps/plugin-dialog";
-import { ArrowLeft, Bot, Copy, Pencil, Save, Shuffle } from "lucide-react";
+import { ArrowLeft, Bot, Copy, FolderInput, Pencil, Save, Shuffle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { designApi } from "../lib/designApi";
 import { loadAiSettings, type AiSettings } from "../lib/aiSettings";
@@ -11,6 +11,7 @@ import type { ExcalidrawScene } from "../types/excalidraw";
 import { AiMermaidModifyDialog } from "./AiMermaidModifyDialog";
 import { ExportMenu } from "./ExportMenu";
 import { MermaidPreview } from "./MermaidPreview";
+import { MoveCopyDesignDialog } from "./MoveCopyDesignDialog";
 import { RenameDialog } from "./RenameDialog";
 
 type MermaidEditorViewProps = {
@@ -27,7 +28,7 @@ type MermaidEditorViewProps = {
 };
 
 type SaveStatus = "saved" | "saving" | "unsaved" | "error";
-type PendingAction = "rename" | "duplicate" | "ai-modify" | null;
+type PendingAction = "rename" | "duplicate" | "move" | "ai-modify" | null;
 
 export function MermaidEditorView({
   project,
@@ -112,12 +113,30 @@ export function MermaidEditorView({
   );
 
   const handleDuplicate = useCallback(
-    async (name: string) => {
+    async (targetProject: string, name: string) => {
       setIsFileActionRunning(true);
 
       try {
         const latestSource = source === savedSource ? source : await saveNow();
-        const design = await designApi.duplicateDesign(project, fileName, name);
+        const design = targetProject === project
+          ? await designApi.duplicateDesign(project, fileName, name)
+          : await designApi.copyDesign(project, fileName, targetProject, name);
+        setPendingAction(null);
+        onDesignMoved(design.project, design.fileName, latestSource);
+      } finally {
+        setIsFileActionRunning(false);
+      }
+    },
+    [fileName, onDesignMoved, project, saveNow, savedSource, source],
+  );
+
+  const handleMove = useCallback(
+    async (targetProject: string, name: string) => {
+      setIsFileActionRunning(true);
+
+      try {
+        const latestSource = source === savedSource ? source : await saveNow();
+        const design = await designApi.moveDesign(project, fileName, targetProject, name);
         setPendingAction(null);
         onDesignMoved(design.project, design.fileName, latestSource);
       } finally {
@@ -231,6 +250,16 @@ export function MermaidEditorView({
           >
             <Copy size={16} />
           </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("move")}
+            aria-label="Move design"
+            title="Move design"
+            disabled={isBusy}
+          >
+            <FolderInput size={16} />
+          </button>
           <ExportMenu
             disabled={isBusy}
             items={[
@@ -305,13 +334,21 @@ export function MermaidEditorView({
         />
       ) : null}
       {pendingAction === "duplicate" ? (
-        <RenameDialog
-          title="Duplicate design"
-          inputLabel="Design name"
+        <MoveCopyDesignDialog
+          mode="copy"
+          sourceProject={project}
           initialName={`${title} Copy`}
-          submitLabel="Duplicate"
           onCancel={() => setPendingAction(null)}
           onSubmit={handleDuplicate}
+        />
+      ) : null}
+      {pendingAction === "move" ? (
+        <MoveCopyDesignDialog
+          mode="move"
+          sourceProject={project}
+          initialName={title}
+          onCancel={() => setPendingAction(null)}
+          onSubmit={handleMove}
         />
       ) : null}
     </div>

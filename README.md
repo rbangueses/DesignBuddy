@@ -115,6 +115,8 @@ Notes are intentionally project-scoped. Use them for discovery notes, customer c
 
 Excalidraw diagrams also have an optional Notes panel for quick, diagram-specific context such as assumptions, open questions, and decisions. Press `N` while the canvas is focused to show or hide it. These notes are stored in a private DesignBuddy sidecar file: they follow the diagram when it is renamed, duplicated, backed up, or restored, but never appear as a library artifact or in a standard `.excalidraw` export.
 
+Use the editor or library row's **Duplicate** control to copy an artifact into the current or another project. Use **Move** to relocate it to another project. Both actions preserve a diagram's private Notes panel, refresh project counters, and never overwrite an existing artifact with the same name.
+
 ## Presentation Mode
 
 The project sidebar includes a presentation mode toggle for screen-sharing. When enabled, private projects are hidden from the sidebar so their names are not visible and cannot be selected accidentally. Starting presentation mode automatically marks the currently selected project as visible, so it remains available while you navigate among other visible reference projects. Leaving presentation mode shows every project again without changing that visibility choice.

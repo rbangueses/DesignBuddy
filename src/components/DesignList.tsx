@@ -3,6 +3,7 @@ import {
   ChevronDown,
   Copy,
   Download,
+  FolderInput,
   FileText,
   FilePlus2,
   Pencil,
@@ -30,6 +31,7 @@ type DesignListProps = {
   onExportDesign: (design: DesignSummary) => void;
   onRenameDesign: (design: DesignSummary) => void;
   onDuplicateDesign: (design: DesignSummary) => void;
+  onMoveDesign?: (design: DesignSummary) => void;
   onDeleteDesign: (design: DesignSummary) => void;
   onOpenDesign: (project: string, fileName: string) => void;
 };
@@ -50,6 +52,7 @@ export function DesignList({
   onExportDesign,
   onRenameDesign,
   onDuplicateDesign,
+  onMoveDesign,
   onDeleteDesign,
   onOpenDesign,
 }: DesignListProps) {
@@ -231,6 +234,18 @@ export function DesignList({
                   }}
                 >
                   <Copy size={16} />
+                </button>
+                <button
+                  type="button"
+                  className="icon-button row-action-button"
+                  aria-label={`Move ${design.name}`}
+                  title={`Move ${design.name}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onMoveDesign?.(design);
+                  }}
+                >
+                  <FolderInput size={16} />
                 </button>
                 <button
                   type="button"

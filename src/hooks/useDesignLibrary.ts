@@ -38,6 +38,16 @@ type UseDesignLibraryResult = {
     sourceFileName: string,
     targetName: string,
   ) => Promise<DesignSummary | null>;
+  copyDesign: (
+    sourceFileName: string,
+    targetProject: string,
+    targetName: string,
+  ) => Promise<DesignSummary | null>;
+  moveDesign: (
+    sourceFileName: string,
+    targetProject: string,
+    targetName: string,
+  ) => Promise<DesignSummary | null>;
   deleteDesign: (fileName: string) => Promise<void>;
   importDesign: (sourcePath: string) => Promise<DesignSummary | null>;
   exportDesign: (fileName: string, targetPath: string) => Promise<void>;
@@ -264,12 +274,14 @@ export function useDesignLibrary(initialSelectedProject?: string | null): UseDes
           : design;
 
         await loadDesigns(project);
+        await loadProjects(project);
         return savedDesign;
       }),
     renameDesign: async (oldFileName, newName) =>
       withProject(async (project) => {
         const design = await designApi.renameDesign(project, oldFileName, newName);
         await loadDesigns(project);
+        await loadProjects(project);
         return design;
       }),
     duplicateDesign: async (sourceFileName, targetName) =>
@@ -280,18 +292,42 @@ export function useDesignLibrary(initialSelectedProject?: string | null): UseDes
           targetName,
         );
         await loadDesigns(project);
+        await loadProjects(project);
+        return design;
+      }),
+    copyDesign: async (sourceFileName, targetProject, targetName) =>
+      withProject(async (project) => {
+        const design = targetProject === project
+          ? await designApi.duplicateDesign(project, sourceFileName, targetName)
+          : await designApi.copyDesign(project, sourceFileName, targetProject, targetName);
+        await loadDesigns(project);
+        await loadProjects(project);
+        return design;
+      }),
+    moveDesign: async (sourceFileName, targetProject, targetName) =>
+      withProject(async (project) => {
+        const design = await designApi.moveDesign(
+          project,
+          sourceFileName,
+          targetProject,
+          targetName,
+        );
+        await loadDesigns(project);
+        await loadProjects(project);
         return design;
       }),
     deleteDesign: async (fileName) => {
       await withProject(async (project) => {
         await designApi.deleteDesign(project, fileName);
         await loadDesigns(project);
+        await loadProjects(project);
       });
     },
     importDesign: async (sourcePath) =>
       withProject(async (project) => {
         const design = await designApi.importDesign(project, sourcePath);
         await loadDesigns(project);
+        await loadProjects(project);
         return design;
       }),
     exportDesign: async (fileName, targetPath) => {

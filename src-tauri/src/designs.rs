@@ -937,6 +937,72 @@ pub fn duplicate_design(
     })
 }
 
+pub fn copy_design(
+    root: &Path,
+    source_project: &str,
+    source_file_name: &str,
+    target_project: &str,
+    target_name: &str,
+) -> Result<DesignSummary, DesignError> {
+    let source = design_path(root, source_project, source_file_name)?;
+    let kind = kind_from_path(&source)
+        .ok_or_else(|| DesignError::InvalidDesignFile(source_file_name.to_string()))?;
+    let target = design_path_for_kind(root, target_project, target_name, &kind)?;
+    if !project_path(root, target_project)?.exists() {
+        return Err(DesignError::NotFound(target_project.to_string()));
+    }
+    if !source.exists() {
+        return Err(DesignError::NotFound(source_file_name.to_string()));
+    }
+    if target.exists() {
+        return Err(DesignError::AlreadyExists(target_name.to_string()));
+    }
+
+    fs::copy(&source, &target)?;
+    copy_diagram_notes(&source, &target)?;
+    let file_name = target.file_name().unwrap().to_string_lossy().to_string();
+    Ok(DesignSummary {
+        project: target_project.to_string(),
+        name: design_name_from_file(&file_name),
+        file_name,
+        kind,
+        updated_at_ms: modified_ms(&target),
+    })
+}
+
+pub fn move_design(
+    root: &Path,
+    source_project: &str,
+    source_file_name: &str,
+    target_project: &str,
+    target_name: &str,
+) -> Result<DesignSummary, DesignError> {
+    let source = design_path(root, source_project, source_file_name)?;
+    let kind = kind_from_path(&source)
+        .ok_or_else(|| DesignError::InvalidDesignFile(source_file_name.to_string()))?;
+    let target = design_path_for_kind(root, target_project, target_name, &kind)?;
+    if !project_path(root, target_project)?.exists() {
+        return Err(DesignError::NotFound(target_project.to_string()));
+    }
+    if !source.exists() {
+        return Err(DesignError::NotFound(source_file_name.to_string()));
+    }
+    if target.exists() {
+        return Err(DesignError::AlreadyExists(target_name.to_string()));
+    }
+
+    fs::rename(&source, &target)?;
+    move_diagram_notes(&source, &target)?;
+    let file_name = target.file_name().unwrap().to_string_lossy().to_string();
+    Ok(DesignSummary {
+        project: target_project.to_string(),
+        name: design_name_from_file(&file_name),
+        file_name,
+        kind,
+        updated_at_ms: modified_ms(&target),
+    })
+}
+
 pub fn import_design(
     root: &Path,
     project: &str,
@@ -1543,6 +1609,8 @@ mod tests {
     fn rename_duplicate_and_delete_designs_preserve_originals() {
         let root = test_root("rename-duplicate");
         create_project(&root, "Ideas").unwrap();
+        create_project(&root, "Reference").unwrap();
+        create_project(&root, "Archive").unwrap();
         create_design(&root, "Ideas", "Sketch", DesignKind::Excalidraw).unwrap();
         write_diagram_notes(&root, "Ideas", "Sketch.excalidraw", "Capture open questions.").unwrap();
 
@@ -1556,6 +1624,43 @@ mod tests {
             .join("Ideas")
             .join(".Sketch.excalidraw.designbuddy-notes.json")
             .exists());
+
+        let copied = copy_design(
+            &root,
+            "Ideas",
+            "Sketch v2.excalidraw",
+            "Reference",
+            "Shared sketch",
+        )
+        .unwrap();
+        assert_eq!(copied.project, "Reference");
+        assert_eq!(
+            read_diagram_notes(&root, "Reference", "Shared sketch.excalidraw")
+                .unwrap()
+                .text,
+            "Capture open questions.",
+        );
+
+        let moved = move_design(
+            &root,
+            "Reference",
+            "Shared sketch.excalidraw",
+            "Archive",
+            "Shared sketch",
+        )
+        .unwrap();
+        assert_eq!(moved.project, "Archive");
+        assert!(!root.join("Reference").join("Shared sketch.excalidraw").exists());
+        assert!(!root
+            .join("Reference")
+            .join(".Shared sketch.excalidraw.designbuddy-notes.json")
+            .exists());
+        assert_eq!(
+            read_diagram_notes(&root, "Archive", "Shared sketch.excalidraw")
+                .unwrap()
+                .text,
+            "Capture open questions.",
+        );
 
         let duplicated = duplicate_design(&root, "Ideas", "Sketch v2.excalidraw", "Copy").unwrap();
         assert_eq!(duplicated.file_name, "Copy.excalidraw");

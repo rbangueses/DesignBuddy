@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-09-15 — 0.3.1
+
+- Added a Move button to artifact editors and library rows. Move a diagram or note into another project without exporting or reimporting it.
+- Updated Duplicate to let you choose the destination project and refresh project counters after copying, moving, or deleting. Copies retain associated diagram notes, while name conflicts are never overwritten.
+
 ## 2026-09-15
 
 - Added an optional per-diagram Notes panel, toggled with `N` when the canvas is focused. Notes persist privately alongside the diagram through rename, duplicate, backup, and restore, without changing the exported `.excalidraw` file.

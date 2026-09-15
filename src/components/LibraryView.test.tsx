@@ -66,6 +66,8 @@ function makeLibraryState() {
     exportDesign: vi.fn(),
     renameDesign: vi.fn(),
     duplicateDesign: vi.fn(),
+    copyDesign: vi.fn(),
+    moveDesign: vi.fn(),
     deleteDesign: vi.fn(),
   };
 }
@@ -107,7 +109,7 @@ describe("LibraryView", () => {
     const library = makeLibraryState();
     library.duplicateProject.mockResolvedValue({ name: "App Copy", designCount: 1 });
     library.deleteProject.mockResolvedValue(undefined);
-    library.duplicateDesign.mockResolvedValue({
+    library.copyDesign.mockResolvedValue({
       project: "App",
       name: "Flow Copy",
       fileName: "Flow Copy.excalidraw",
@@ -150,8 +152,9 @@ describe("LibraryView", () => {
     await user.click(within(dialog).getByRole("button", { name: "Duplicate" }));
 
     await waitFor(() =>
-      expect(library.duplicateDesign).toHaveBeenCalledWith(
+      expect(library.copyDesign).toHaveBeenCalledWith(
         "Flow.excalidraw",
+        "App",
         "Flow Copy",
       ),
     );

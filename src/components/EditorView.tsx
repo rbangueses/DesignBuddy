@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   Bot,
   Copy,
+  FolderInput,
   Pencil,
   Save,
   Shapes,
@@ -47,6 +48,7 @@ import {
 import type { ExcalidrawScene } from "../types/excalidraw";
 import { AiModifyDialog } from "./AiModifyDialog";
 import { ExportMenu } from "./ExportMenu";
+import { MoveCopyDesignDialog } from "./MoveCopyDesignDialog";
 import { RenameDialog } from "./RenameDialog";
 import { useDialogEscape } from "./useDialogEscape";
 
@@ -62,7 +64,7 @@ type EditorViewProps = {
   ) => void;
 };
 
-type PendingAction = "rename" | "duplicate" | "ai-modify" | "twilio-components" | null;
+type PendingAction = "rename" | "duplicate" | "move" | "ai-modify" | "twilio-components" | null;
 
 type CanvasPointerPosition = {
   clientX: number;
@@ -416,12 +418,30 @@ export function EditorView({
   );
 
   const handleDuplicate = useCallback(
-    async (name: string) => {
+    async (targetProject: string, name: string) => {
       setIsFileActionRunning(true);
 
       try {
         const latestScene = await getLatestSavedScene();
-        const design = await designApi.duplicateDesign(project, fileName, name);
+        const design = targetProject === project
+          ? await designApi.duplicateDesign(project, fileName, name)
+          : await designApi.copyDesign(project, fileName, targetProject, name);
+        setPendingAction(null);
+        onDesignMoved(design.project, design.fileName, latestScene);
+      } finally {
+        setIsFileActionRunning(false);
+      }
+    },
+    [fileName, getLatestSavedScene, onDesignMoved, project],
+  );
+
+  const handleMove = useCallback(
+    async (targetProject: string, name: string) => {
+      setIsFileActionRunning(true);
+
+      try {
+        const latestScene = await getLatestSavedScene();
+        const design = await designApi.moveDesign(project, fileName, targetProject, name);
         setPendingAction(null);
         onDesignMoved(design.project, design.fileName, latestScene);
       } finally {
@@ -712,6 +732,16 @@ export function EditorView({
           >
             <Copy size={16} />
           </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setPendingAction("move")}
+            aria-label="Move design"
+            title="Move design"
+            disabled={isBusy || !initialData}
+          >
+            <FolderInput size={16} />
+          </button>
           <ExportMenu
             disabled={isBusy || !initialData}
             items={[
@@ -804,13 +834,21 @@ export function EditorView({
         />
       ) : null}
       {pendingAction === "duplicate" ? (
-        <RenameDialog
-          title="Duplicate design"
-          inputLabel="Design name"
+        <MoveCopyDesignDialog
+          mode="copy"
+          sourceProject={project}
           initialName={`${title} Copy`}
-          submitLabel="Duplicate"
           onCancel={() => setPendingAction(null)}
           onSubmit={handleDuplicate}
+        />
+      ) : null}
+      {pendingAction === "move" ? (
+        <MoveCopyDesignDialog
+          mode="move"
+          sourceProject={project}
+          initialName={title}
+          onCancel={() => setPendingAction(null)}
+          onSubmit={handleMove}
         />
       ) : null}
       {pendingAction === "twilio-components" ? (

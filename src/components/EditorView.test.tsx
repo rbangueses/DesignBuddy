@@ -67,6 +67,7 @@ vi.mock("lucide-react", () => ({
   Bot: () => <span aria-hidden="true">bot</span>,
   ChevronDown: () => <span aria-hidden="true">chevron-down</span>,
   Copy: () => <span aria-hidden="true">copy</span>,
+  FolderInput: () => <span aria-hidden="true">move</span>,
   Download: () => <span aria-hidden="true">download</span>,
   FileCode2: () => <span aria-hidden="true">file-code</span>,
   Pencil: () => <span aria-hidden="true">pencil</span>,
@@ -81,9 +82,12 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
 
 vi.mock("../lib/designApi", () => ({
   designApi: {
+    copyDesign: vi.fn(),
     duplicateDesign: vi.fn(),
     exportDrawio: vi.fn(),
     exportDesign: vi.fn(),
+    listProjects: vi.fn(),
+    moveDesign: vi.fn(),
     readDesign: vi.fn(),
     readDiagramNotes: vi.fn(),
     renameDesign: vi.fn(),
@@ -118,10 +122,14 @@ describe("EditorView", () => {
     vi.mocked(designApi.readDiagramNotes).mockReset();
     vi.mocked(designApi.renameDesign).mockReset();
     vi.mocked(designApi.duplicateDesign).mockReset();
+    vi.mocked(designApi.copyDesign).mockReset();
     vi.mocked(designApi.exportDrawio).mockReset();
     vi.mocked(designApi.exportDesign).mockReset();
     vi.mocked(designApi.writeDesign).mockReset();
     vi.mocked(designApi.writeDiagramNotes).mockReset();
+    vi.mocked(designApi.moveDesign).mockReset();
+    vi.mocked(designApi.listProjects).mockReset();
+    vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "App", designCount: 1 }]);
     vi.mocked(designApi.readDiagramNotes).mockResolvedValue({ text: "" });
     vi.mocked(save).mockReset();
     localStorage.clear();

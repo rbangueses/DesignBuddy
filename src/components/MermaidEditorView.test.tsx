@@ -13,11 +13,14 @@ vi.mock("./MermaidPreview", () => ({
 
 vi.mock("../lib/designApi", () => ({
   designApi: {
+    copyDesign: vi.fn(),
     createDesign: vi.fn(),
     writeDesign: vi.fn(),
     renameDesign: vi.fn(),
     duplicateDesign: vi.fn(),
     exportDesign: vi.fn(),
+    listProjects: vi.fn(),
+    moveDesign: vi.fn(),
   },
 }));
 
@@ -31,6 +34,10 @@ describe("MermaidEditorView", () => {
     vi.mocked(designApi.createDesign).mockReset();
     vi.mocked(designApi.renameDesign).mockReset();
     vi.mocked(designApi.duplicateDesign).mockReset();
+    vi.mocked(designApi.copyDesign).mockReset();
+    vi.mocked(designApi.moveDesign).mockReset();
+    vi.mocked(designApi.listProjects).mockReset();
+    vi.mocked(designApi.listProjects).mockResolvedValue([{ name: "Docs", designCount: 1 }]);
     vi.mocked(designApi.exportDesign).mockReset();
     vi.mocked(save).mockReset();
   });

@@ -164,6 +164,42 @@ fn duplicate_design(
 }
 
 #[tauri::command]
+fn copy_design(
+    app: tauri::AppHandle,
+    source_project: String,
+    source_file_name: String,
+    target_project: String,
+    target_name: String,
+) -> Result<DesignSummary, String> {
+    designs::copy_design(
+        &designs_root(&app)?,
+        &source_project,
+        &source_file_name,
+        &target_project,
+        &target_name,
+    )
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn move_design(
+    app: tauri::AppHandle,
+    source_project: String,
+    source_file_name: String,
+    target_project: String,
+    target_name: String,
+) -> Result<DesignSummary, String> {
+    designs::move_design(
+        &designs_root(&app)?,
+        &source_project,
+        &source_file_name,
+        &target_project,
+        &target_name,
+    )
+    .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn delete_design(app: tauri::AppHandle, project: String, file_name: String) -> Result<(), String> {
     designs::delete_design(&designs_root(&app)?, &project, &file_name)
         .map_err(|error| error.to_string())
@@ -241,6 +277,8 @@ pub fn run() {
             write_diagram_notes,
             rename_design,
             duplicate_design,
+            copy_design,
+            move_design,
             delete_design,
             import_design,
             export_design,
