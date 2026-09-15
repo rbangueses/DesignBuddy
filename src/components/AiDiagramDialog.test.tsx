@@ -17,6 +17,7 @@ vi.mock("../lib/openaiDiagram", () => ({
 
 const settings = {
   apiKey: "sk-test",
+  apiBaseUrl: "https://api.openai.com/v1",
   selectedModel: "gpt-5.4-mini" as const,
   customModel: "",
   quality: "balanced" as const,

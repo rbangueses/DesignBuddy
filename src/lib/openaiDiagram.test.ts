@@ -63,6 +63,26 @@ describe("openaiDiagram", () => {
     expect(JSON.stringify(requestBody)).toContain("compact");
   });
 
+  it("uses a configured OpenAI-compatible API base URL", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ output_text: JSON.stringify(generatedScene) }),
+    } as Response);
+
+    await generateExcalidrawScene({
+      apiKey: "sk-test",
+      apiBaseUrl: "https://litellm.example.com/",
+      model: "gpt-5.6-luna",
+      quality: "draft",
+      prompt: "A login flow",
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://litellm.example.com/v1/responses",
+      expect.anything(),
+    );
+  });
+
   it("analyzes a diagram prompt and returns generation recommendations", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,

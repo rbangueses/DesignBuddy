@@ -5,6 +5,7 @@ import type {
   RestorePreview,
   RestoreResult,
   DesignContent,
+  DiagramNotes,
   DesignKind,
   DesignScene,
   DesignSummary,
@@ -36,6 +37,10 @@ export const designApi = {
     invoke<DesignScene>("read_design", { project, fileName }),
   writeDesign: (project: string, fileName: string, content: DesignContent) =>
     invoke<DesignScene>("write_design", { project, fileName, content }),
+  readDiagramNotes: (project: string, fileName: string) =>
+    invoke<DiagramNotes>("read_diagram_notes", { project, fileName }),
+  writeDiagramNotes: (project: string, fileName: string, text: string) =>
+    invoke<DiagramNotes>("write_diagram_notes", { project, fileName, text }),
   renameDesign: (project: string, oldFileName: string, newName: string) =>
     invoke<DesignSummary>("rename_design", { project, oldFileName, newName }),
   duplicateDesign: (

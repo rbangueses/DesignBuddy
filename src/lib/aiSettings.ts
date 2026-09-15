@@ -1,4 +1,5 @@
 export const AI_SETTINGS_STORAGE_KEY = "banguesesdraw.aiSettings";
+export const DEFAULT_AI_API_BASE_URL = "https://api.openai.com/v1";
 
 export const AI_MODEL_OPTIONS = [
   {
@@ -34,6 +35,7 @@ export type AiQuality = (typeof AI_QUALITY_OPTIONS)[number]["id"];
 
 export type AiSettings = {
   apiKey: string;
+  apiBaseUrl: string;
   selectedModel: AiModelId;
   customModel: string;
   quality: AiQuality;
@@ -42,6 +44,7 @@ export type AiSettings = {
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
   apiKey: "",
+  apiBaseUrl: DEFAULT_AI_API_BASE_URL,
   selectedModel: "gpt-5.4-mini",
   customModel: "",
   quality: "balanced",
@@ -74,6 +77,10 @@ function sanitizeAiSettings(value: unknown): AiSettings {
       typeof candidate.apiKey === "string"
         ? candidate.apiKey
         : DEFAULT_AI_SETTINGS.apiKey,
+    apiBaseUrl:
+      typeof candidate.apiBaseUrl === "string" && candidate.apiBaseUrl.trim()
+        ? candidate.apiBaseUrl.trim()
+        : DEFAULT_AI_SETTINGS.apiBaseUrl,
     selectedModel,
     customModel:
       typeof candidate.customModel === "string"
@@ -114,4 +121,35 @@ export function resolveAiModel(settings: AiSettings) {
   }
 
   return settings.selectedModel;
+}
+
+export function getAiResponsesUrl(apiBaseUrl: string) {
+  const normalizedBaseUrl = apiBaseUrl.trim() || DEFAULT_AI_API_BASE_URL;
+  const url = new URL(normalizedBaseUrl);
+  let path = url.pathname.replace(/\/+$/, "");
+
+  if (path.endsWith("/responses")) {
+    path = path.slice(0, -"/responses".length);
+  }
+
+  if (!path.endsWith("/v1")) {
+    path = `${path}/v1`;
+  }
+
+  url.pathname = `${path}/responses`;
+  return url.toString();
+}
+
+export function validateAiApiBaseUrl(apiBaseUrl: string) {
+  try {
+    const url = new URL(apiBaseUrl.trim() || DEFAULT_AI_API_BASE_URL);
+
+    if (url.protocol !== "https:") {
+      return "AI API base URL must use HTTPS.";
+    }
+
+    return null;
+  } catch {
+    return "Enter a valid AI API base URL.";
+  }
 }

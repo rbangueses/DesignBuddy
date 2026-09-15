@@ -4,12 +4,14 @@ import {
   AI_MODEL_OPTIONS,
   AI_QUALITY_OPTIONS,
   resolveAiModel,
+  validateAiApiBaseUrl,
   type AiModelId,
   type AiQuality,
   type AiSettings,
 } from "../lib/aiSettings";
 import type { BackupSettings } from "../lib/backupSettings";
 import { useDialogEscape } from "./useDialogEscape";
+import packageJson from "../../package.json";
 
 type AiSettingsDialogProps = {
   settings: AiSettings;
@@ -34,6 +36,7 @@ export function AiSettingsDialog({
   onSave,
 }: AiSettingsDialogProps) {
   const [apiKey, setApiKey] = useState(settings.apiKey);
+  const [apiBaseUrl, setApiBaseUrl] = useState(settings.apiBaseUrl);
   const [selectedModel, setSelectedModel] = useState<AiModelId>(
     settings.selectedModel,
   );
@@ -47,6 +50,7 @@ export function AiSettingsDialog({
   const [isBackingUp, setIsBackingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const apiKeyId = useId();
+  const apiBaseUrlId = useId();
   const modelId = useId();
   const customModelId = useId();
   const qualityId = useId();
@@ -59,6 +63,7 @@ export function AiSettingsDialog({
 
     const nextSettings = {
       apiKey: apiKey.trim(),
+      apiBaseUrl: apiBaseUrl.trim(),
       selectedModel,
       customModel: customModel.trim(),
       quality,
@@ -67,6 +72,12 @@ export function AiSettingsDialog({
 
     if (!resolveAiModel(nextSettings)) {
       setError("Choose a model or enter a custom model id.");
+      return;
+    }
+
+    const apiBaseUrlError = validateAiApiBaseUrl(nextSettings.apiBaseUrl);
+    if (apiBaseUrlError) {
+      setError(apiBaseUrlError);
       return;
     }
 
@@ -123,7 +134,7 @@ export function AiSettingsDialog({
       >
         <h2>Settings</h2>
         <form onSubmit={handleSubmit}>
-          <label htmlFor={apiKeyId}>OpenAI API key</label>
+          <label htmlFor={apiKeyId}>AI API key</label>
           <input
             id={apiKeyId}
             type="password"
@@ -132,6 +143,18 @@ export function AiSettingsDialog({
             placeholder="sk-..."
             autoFocus
           />
+
+          <label htmlFor={apiBaseUrlId}>AI API base URL</label>
+          <input
+            id={apiBaseUrlId}
+            type="url"
+            value={apiBaseUrl}
+            onChange={(event) => setApiBaseUrl(event.target.value)}
+            placeholder="https://api.openai.com/v1"
+          />
+          <p className="settings-help">
+            Use your LiteLLM proxy URL for a virtual key. The app sends requests to the Responses API.
+          </p>
 
           <label htmlFor={modelId}>Default model</label>
           <select
@@ -208,6 +231,8 @@ export function AiSettingsDialog({
               <p className="settings-status">{backupStatus}</p>
             ) : null}
           </section>
+
+          <p className="settings-version">DesignBuddy {packageJson.version}</p>
 
           {error ? (
             <p className="form-error" id={errorId}>

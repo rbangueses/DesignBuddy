@@ -113,6 +113,8 @@ The current note editor supports:
 
 Notes are intentionally project-scoped. Use them for discovery notes, customer context, architecture rationale, meeting summaries, or anything that should live next to the diagrams it explains.
 
+Excalidraw diagrams also have an optional Notes panel for quick, diagram-specific context such as assumptions, open questions, and decisions. Press `N` while the canvas is focused to show or hide it. These notes are stored in a private DesignBuddy sidecar file: they follow the diagram when it is renamed, duplicated, backed up, or restored, but never appear as a library artifact or in a standard `.excalidraw` export.
+
 ## Presentation Mode
 
 The project sidebar includes a presentation mode toggle for screen-sharing. When enabled, private projects are hidden from the sidebar so their names are not visible and cannot be selected accidentally. Starting presentation mode automatically marks the currently selected project as visible, so it remains available while you navigate among other visible reference projects. Leaving presentation mode shows every project again without changing that visibility choice.
@@ -178,7 +180,7 @@ Mermaid can be disabled from AI settings if you want a simpler Excalidraw-only e
 
 ## AI Diagrams
 
-AI features use your own OpenAI API key. The key is stored locally in the app settings on your machine.
+AI features use your own OpenAI API key, or a compatible LiteLLM virtual key. The key and optional API base URL are stored locally in the app settings on your machine. The default base URL is OpenAI; for a LiteLLM proxy, enter its root URL or `/v1` URL and DesignBuddy will use its `/v1/responses` endpoint.
 
 From the library, you can generate a new diagram from a prompt and choose:
 

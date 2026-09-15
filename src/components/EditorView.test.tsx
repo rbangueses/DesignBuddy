@@ -72,6 +72,7 @@ vi.mock("lucide-react", () => ({
   Pencil: () => <span aria-hidden="true">pencil</span>,
   Save: () => <span aria-hidden="true">save</span>,
   Shapes: () => <span aria-hidden="true">shapes</span>,
+  StickyNote: () => <span aria-hidden="true">notes</span>,
 }));
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -84,8 +85,10 @@ vi.mock("../lib/designApi", () => ({
     exportDrawio: vi.fn(),
     exportDesign: vi.fn(),
     readDesign: vi.fn(),
+    readDiagramNotes: vi.fn(),
     renameDesign: vi.fn(),
     writeDesign: vi.fn(),
+    writeDiagramNotes: vi.fn(),
   },
 }));
 
@@ -112,11 +115,14 @@ describe("EditorView", () => {
     initialDataRenders.length = 0;
     excalidrawPropsRenders.length = 0;
     vi.mocked(designApi.readDesign).mockReset();
+    vi.mocked(designApi.readDiagramNotes).mockReset();
     vi.mocked(designApi.renameDesign).mockReset();
     vi.mocked(designApi.duplicateDesign).mockReset();
     vi.mocked(designApi.exportDrawio).mockReset();
     vi.mocked(designApi.exportDesign).mockReset();
     vi.mocked(designApi.writeDesign).mockReset();
+    vi.mocked(designApi.writeDiagramNotes).mockReset();
+    vi.mocked(designApi.readDiagramNotes).mockResolvedValue({ text: "" });
     vi.mocked(save).mockReset();
     localStorage.clear();
     vi.unstubAllGlobals();
@@ -244,6 +250,30 @@ describe("EditorView", () => {
     expect(excalidrawPropsRenders[excalidrawPropsRenders.length - 1]).toEqual({
       aiEnabled: false,
     });
+  });
+
+  it("toggles diagram notes with N only while the canvas has focus", async () => {
+    render(
+      <EditorView
+        project="App"
+        fileName="Flow.excalidraw"
+        initialScene={{ type: "excalidraw", elements: [], appState: {}, files: {} }}
+        onBack={vi.fn()}
+        onDesignMoved={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Mock Excalidraw (0)");
+    fireEvent.keyDown(document.body, { key: "n" });
+
+    const notes = await screen.findByRole("textbox", { name: "Diagram notes" });
+    expect(notes).toBeVisible();
+
+    fireEvent.keyDown(notes, { key: "n" });
+    expect(notes).toBeVisible();
+
+    fireEvent.keyDown(document.body, { key: "n" });
+    expect(screen.queryByRole("textbox", { name: "Diagram notes" })).not.toBeInTheDocument();
   });
 
   it("stays in the editor and surfaces save errors when leaving with pending edits", async () => {

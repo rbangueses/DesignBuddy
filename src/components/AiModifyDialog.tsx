@@ -102,6 +102,7 @@ export function AiModifyDialog({
     try {
       const modifiedScene = await modifyExcalidrawScene({
         apiKey: settings.apiKey.trim(),
+        apiBaseUrl: settings.apiBaseUrl,
         model,
         quality,
         outputBudget,

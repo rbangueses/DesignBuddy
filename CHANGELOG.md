@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-09-15
+
+- Added an optional per-diagram Notes panel, toggled with `N` when the canvas is focused. Notes persist privately alongside the diagram through rename, duplicate, backup, and restore, without changing the exported `.excalidraw` file.
+- Added an AI API base URL setting for OpenAI-compatible proxies such as LiteLLM. Root and `/v1` proxy URLs use the Responses API automatically.
+- Added the installed DesignBuddy version to AI settings.
+
 ## 2026-09-14
 
 - Added selectable local-backup restore: choose individual artifacts by project, preview conflicts, and keep both, replace, or skip each conflicting file.

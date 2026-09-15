@@ -69,6 +69,7 @@ export function AiMermaidModifyDialog({
     try {
       const modifiedSource = await modifyMermaidFlowchart({
         apiKey: settings.apiKey.trim(),
+        apiBaseUrl: settings.apiBaseUrl,
         model,
         quality,
         instruction: trimmedInstruction,

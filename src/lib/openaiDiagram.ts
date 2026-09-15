@@ -1,7 +1,7 @@
 import { prepareSceneForStorage } from "./excalidrawScene";
 import { validateMermaidSource } from "./mermaidSource";
 import { isExcalidrawScene } from "./sceneValidation";
-import type { AiQuality } from "./aiSettings";
+import { getAiResponsesUrl, type AiQuality } from "./aiSettings";
 import {
   getExcalidrawMaxOutputTokens,
   getMermaidMaxOutputTokens,
@@ -13,6 +13,7 @@ import type { ExcalidrawScene } from "../types/excalidraw";
 
 type GenerateExcalidrawSceneInput = {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
@@ -24,6 +25,7 @@ type GenerateExcalidrawSceneInput = {
 
 type AnalyzeDiagramPromptInput = {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   description: string;
   preferredKind?: AiOutputKind;
@@ -43,6 +45,7 @@ export type DiagramPromptAnalysis = {
 
 type ModifyExcalidrawSceneInput = {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
@@ -54,6 +57,7 @@ type ModifyExcalidrawSceneInput = {
 
 type GenerateMermaidFlowchartInput = {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   quality: AiQuality;
   description: string;
@@ -63,6 +67,7 @@ type GenerateMermaidFlowchartInput = {
 
 type ModifyMermaidFlowchartInput = {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   quality: AiQuality;
   source: string;
@@ -135,6 +140,21 @@ const MERMAID_MODIFY_SYSTEM_PROMPT = [
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function formatRequestError(error: unknown, apiBaseUrl?: string) {
+  if (!(error instanceof TypeError)) {
+    return error;
+  }
+
+  try {
+    const endpoint = getAiResponsesUrl(apiBaseUrl ?? "");
+    return new Error(
+      `Could not connect to ${new URL(endpoint).origin}. Check the AI API base URL and your network connection.`,
+    );
+  } catch {
+    return new Error("Could not connect to the configured AI API endpoint.");
+  }
 }
 
 function extractResponseText(responseBody: unknown) {
@@ -367,6 +387,7 @@ function linkAbortSignals(
 
 export async function generateExcalidrawScene({
   apiKey,
+  apiBaseUrl,
   model,
   quality,
   outputBudget,
@@ -386,7 +407,7 @@ export async function generateExcalidrawScene({
   }, timeoutMs);
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(getAiResponsesUrl(apiBaseUrl ?? ""), {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -467,7 +488,7 @@ export async function generateExcalidrawScene({
       );
     }
 
-    throw error;
+    throw formatRequestError(error, apiBaseUrl);
   } finally {
     window.clearTimeout(timeoutId);
     unlinkAbortSignals();
@@ -476,6 +497,7 @@ export async function generateExcalidrawScene({
 
 export function modifyExcalidrawScene({
   apiKey,
+  apiBaseUrl,
   model,
   quality,
   outputBudget,
@@ -486,6 +508,7 @@ export function modifyExcalidrawScene({
 }: ModifyExcalidrawSceneInput): Promise<ExcalidrawScene> {
   return generateExcalidrawScene({
     apiKey,
+    apiBaseUrl,
     model,
     quality,
     outputBudget,
@@ -504,6 +527,7 @@ export function modifyExcalidrawScene({
 
 async function callOpenAiForText({
   apiKey,
+  apiBaseUrl,
   model,
   quality,
   systemPrompt,
@@ -514,6 +538,7 @@ async function callOpenAiForText({
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: {
   apiKey: string;
+  apiBaseUrl?: string;
   model: string;
   quality: AiQuality;
   systemPrompt: string;
@@ -534,7 +559,7 @@ async function callOpenAiForText({
   }, timeoutMs);
 
   try {
-    const response = await fetch("https://api.openai.com/v1/responses", {
+    const response = await fetch(getAiResponsesUrl(apiBaseUrl ?? ""), {
       method: "POST",
       signal: controller.signal,
       headers: {
@@ -605,7 +630,7 @@ async function callOpenAiForText({
       );
     }
 
-    throw error;
+    throw formatRequestError(error, apiBaseUrl);
   } finally {
     window.clearTimeout(timeoutId);
     unlinkAbortSignals();
@@ -614,6 +639,7 @@ async function callOpenAiForText({
 
 export async function analyzeDiagramPrompt({
   apiKey,
+  apiBaseUrl,
   model,
   description,
   preferredKind,
@@ -631,6 +657,7 @@ export async function analyzeDiagramPrompt({
 
   const responseText = await callOpenAiForText({
     apiKey,
+    apiBaseUrl,
     model,
     quality: "draft",
     signal,
@@ -646,6 +673,7 @@ export async function analyzeDiagramPrompt({
 
 export async function generateMermaidFlowchart({
   apiKey,
+  apiBaseUrl,
   model,
   quality,
   description,
@@ -654,6 +682,7 @@ export async function generateMermaidFlowchart({
 }: GenerateMermaidFlowchartInput) {
   const responseText = await callOpenAiForText({
     apiKey,
+    apiBaseUrl,
     model,
     quality,
     signal,
@@ -675,6 +704,7 @@ export async function generateMermaidFlowchart({
 
 export async function modifyMermaidFlowchart({
   apiKey,
+  apiBaseUrl,
   model,
   quality,
   source,
@@ -684,6 +714,7 @@ export async function modifyMermaidFlowchart({
 }: ModifyMermaidFlowchartInput) {
   const responseText = await callOpenAiForText({
     apiKey,
+    apiBaseUrl,
     model,
     quality,
     signal,

@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   AI_MODEL_OPTIONS,
   DEFAULT_AI_SETTINGS,
+  getAiResponsesUrl,
   loadAiSettings,
   resolveAiModel,
   saveAiSettings,
@@ -19,6 +20,7 @@ describe("aiSettings", () => {
   it("persists the API key, selected model, custom model, quality, and Mermaid setting", () => {
     saveAiSettings({
       apiKey: "sk-test",
+      apiBaseUrl: "https://litellm.ai-services.corp.twilio.com/",
       selectedModel: "custom",
       customModel: "gpt-custom-diagrams",
       quality: "high",
@@ -27,6 +29,7 @@ describe("aiSettings", () => {
 
     expect(loadAiSettings()).toEqual({
       apiKey: "sk-test",
+      apiBaseUrl: "https://litellm.ai-services.corp.twilio.com/",
       selectedModel: "custom",
       customModel: "gpt-custom-diagrams",
       quality: "high",
@@ -54,6 +57,15 @@ describe("aiSettings", () => {
 
     expect(resolveAiModel({ ...DEFAULT_AI_SETTINGS, selectedModel: "custom" })).toBe(
       AI_MODEL_OPTIONS[0].id,
+    );
+  });
+
+  it("normalizes OpenAI-compatible base URLs to the Responses endpoint", () => {
+    expect(getAiResponsesUrl("https://litellm.example.com/")).toBe(
+      "https://litellm.example.com/v1/responses",
+    );
+    expect(getAiResponsesUrl("https://litellm.example.com/v1")).toBe(
+      "https://litellm.example.com/v1/responses",
     );
   });
 });

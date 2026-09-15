@@ -97,6 +97,12 @@ pub struct DesignScene {
     pub content: Value,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DiagramNotes {
+    pub text: String,
+}
+
 #[derive(Debug, Error)]
 pub enum DesignError {
     #[error("invalid name: {0}")]
@@ -129,6 +135,7 @@ pub fn empty_scene() -> Value {
 const EXCALIDRAW_EXTENSION: &str = "excalidraw";
 const MERMAID_EXTENSION: &str = "mmd";
 const NOTE_EXTENSION: &str = "bdnote";
+const DIAGRAM_NOTES_SUFFIX: &str = ".designbuddy-notes.json";
 const PROJECT_METADATA_FILE: &str = ".designbuddy-project.json";
 const LEGACY_PROJECT_METADATA_FILE: &str = ".banguesesdraw-project.json";
 
@@ -326,6 +333,47 @@ fn modified_ms(path: &Path) -> u128 {
 
 fn is_design_file(path: &Path) -> bool {
     kind_from_path(path).is_some()
+}
+
+fn diagram_notes_path(path: &Path) -> Result<PathBuf, DesignError> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| DesignError::InvalidName(path.display().to_string()))?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| DesignError::InvalidName(path.display().to_string()))?;
+    Ok(parent.join(format!(".{file_name}{DIAGRAM_NOTES_SUFFIX}")))
+}
+
+fn is_diagram_notes_file(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|name| name.to_str())
+        .is_some_and(|name| name.starts_with('.') && name.ends_with(DIAGRAM_NOTES_SUFFIX))
+}
+
+fn copy_diagram_notes(source: &Path, target: &Path) -> Result<(), DesignError> {
+    let source_notes = diagram_notes_path(source)?;
+    let target_notes = diagram_notes_path(target)?;
+    if target_notes.exists() {
+        fs::remove_file(&target_notes)?;
+    }
+    if source_notes.exists() {
+        fs::copy(source_notes, target_notes)?;
+    }
+    Ok(())
+}
+
+fn move_diagram_notes(source: &Path, target: &Path) -> Result<(), DesignError> {
+    let source_notes = diagram_notes_path(source)?;
+    let target_notes = diagram_notes_path(target)?;
+    if target_notes.exists() {
+        fs::remove_file(&target_notes)?;
+    }
+    if source_notes.exists() {
+        fs::rename(source_notes, target_notes)?;
+    }
+    Ok(())
 }
 
 fn project_summary(path: &Path) -> Result<ProjectSummary, DesignError> {
@@ -533,7 +581,7 @@ pub fn backup_library(root: &Path, target: &Path) -> Result<BackupResult, Design
             let file_name_text = file_name.to_string_lossy();
             let is_metadata = file_name_text == PROJECT_METADATA_FILE
                 || file_name_text == LEGACY_PROJECT_METADATA_FILE;
-            if is_metadata || is_design_file(&source_path) {
+            if is_metadata || is_design_file(&source_path) || is_diagram_notes_file(&source_path) {
                 fs::copy(&source_path, target_project.join(file_name))?;
                 file_count += 1;
             }
@@ -627,7 +675,8 @@ pub fn restore_backup(root: &Path, source: &Path, artifacts: &[RestoreArtifact])
         } else { project_dir.join(&item.file_name) };
         let tmp = target.with_extension(format!("{}.restore-tmp", extension_for_kind(&preview_item.kind)));
         match preview_item.kind { DesignKind::Mermaid => fs::write(&tmp, content["source"].as_str().unwrap_or_default())?, _ => fs::write(&tmp, serde_json::to_string_pretty(&content)?)? }
-        fs::rename(tmp, target)?;
+        fs::rename(tmp, &target)?;
+        copy_diagram_notes(&source_file, &target)?;
         if existing { if matches!(item.conflict_resolution, RestoreConflictResolution::Replace) { result.replaced_count += 1; } else { result.copied_count += 1; } } else { result.added_count += 1; }
     }
     Ok(result)
@@ -652,7 +701,9 @@ pub fn duplicate_project(
     write_project_metadata(&target, &metadata)?;
     for entry in fs::read_dir(source)? {
         let entry = entry?;
-        if entry.file_type()?.is_file() && is_design_file(&entry.path()) {
+        if entry.file_type()?.is_file()
+            && (is_design_file(&entry.path()) || is_diagram_notes_file(&entry.path()))
+        {
             fs::copy(entry.path(), target.join(entry.file_name()))?;
         }
     }
@@ -791,6 +842,43 @@ pub fn write_design(
     )
 }
 
+pub fn read_diagram_notes(
+    root: &Path,
+    project: &str,
+    file_name: &str,
+) -> Result<DiagramNotes, DesignError> {
+    let path = design_path(root, project, file_name)?;
+    if !path.exists() {
+        return Err(DesignError::NotFound(file_name.to_string()));
+    }
+
+    let notes_path = diagram_notes_path(&path)?;
+    if !notes_path.exists() {
+        return Ok(DiagramNotes::default());
+    }
+
+    Ok(serde_json::from_str(&fs::read_to_string(notes_path)?)?)
+}
+
+pub fn write_diagram_notes(
+    root: &Path,
+    project: &str,
+    file_name: &str,
+    text: &str,
+) -> Result<DiagramNotes, DesignError> {
+    let path = design_path(root, project, file_name)?;
+    if !path.exists() {
+        return Err(DesignError::NotFound(file_name.to_string()));
+    }
+
+    let notes = DiagramNotes { text: text.to_string() };
+    let notes_path = diagram_notes_path(&path)?;
+    let tmp_path = notes_path.with_extension("json.tmp");
+    fs::write(&tmp_path, serde_json::to_string_pretty(&notes)?)?;
+    fs::rename(tmp_path, notes_path)?;
+    Ok(notes)
+}
+
 pub fn rename_design(
     root: &Path,
     project: &str,
@@ -808,7 +896,8 @@ pub fn rename_design(
         return Err(DesignError::AlreadyExists(new_name.to_string()));
     }
 
-    fs::rename(old_path, &new_path)?;
+    fs::rename(&old_path, &new_path)?;
+    move_diagram_notes(&old_path, &new_path)?;
     let file_name = new_path.file_name().unwrap().to_string_lossy().to_string();
     Ok(DesignSummary {
         project: project.to_string(),
@@ -837,6 +926,7 @@ pub fn duplicate_design(
     }
 
     fs::copy(&source, &target)?;
+    copy_diagram_notes(&source, &target)?;
     let file_name = target.file_name().unwrap().to_string_lossy().to_string();
     Ok(DesignSummary {
         project: project.to_string(),
@@ -974,7 +1064,11 @@ pub fn delete_design(root: &Path, project: &str, file_name: &str) -> Result<(), 
         return Err(DesignError::NotFound(file_name.to_string()));
     }
 
+    let notes_path = diagram_notes_path(&path)?;
     fs::remove_file(path)?;
+    if notes_path.exists() {
+        fs::remove_file(notes_path)?;
+    }
     Ok(())
 }
 
@@ -1105,6 +1199,13 @@ mod tests {
             backup_root.join("App").join("Flow.excalidraw"),
             serde_json::to_string(&restored_scene).unwrap(),
         ).unwrap();
+        fs::write(
+            backup_root
+                .join("App")
+                .join(".Flow.excalidraw.designbuddy-notes.json"),
+            r#"{"text":"Restored context."}"#,
+        )
+        .unwrap();
         fs::write(backup_root.join("App").join("New.mmd"), "flowchart LR\n  A --> B\n").unwrap();
         fs::write(backup_root.join("App").join("Broken.excalidraw"), "{}").unwrap();
 
@@ -1120,6 +1221,12 @@ mod tests {
         assert_eq!(result.copied_count, 1);
         assert_eq!(result.added_count, 1);
         assert_eq!(read_design(&root, "App", "Flow Copy.excalidraw").unwrap().content["elements"][0]["id"], "backup");
+        assert_eq!(
+            read_diagram_notes(&root, "App", "Flow Copy.excalidraw")
+                .unwrap()
+                .text,
+            "Restored context.",
+        );
         assert!(root.join("App").join("New.mmd").exists());
 
         let replaced = restore_backup(&root, &backup_root, &[
@@ -1127,6 +1234,12 @@ mod tests {
         ]).unwrap();
         assert_eq!(replaced.replaced_count, 1);
         assert_eq!(read_design(&root, "App", "Flow.excalidraw").unwrap().content["elements"][0]["id"], "backup");
+        assert_eq!(
+            read_diagram_notes(&root, "App", "Flow.excalidraw")
+                .unwrap()
+                .text,
+            "Restored context.",
+        );
 
         fs::remove_dir_all(root).unwrap();
         fs::remove_dir_all(backup_root).unwrap();
@@ -1431,14 +1544,31 @@ mod tests {
         let root = test_root("rename-duplicate");
         create_project(&root, "Ideas").unwrap();
         create_design(&root, "Ideas", "Sketch", DesignKind::Excalidraw).unwrap();
+        write_diagram_notes(&root, "Ideas", "Sketch.excalidraw", "Capture open questions.").unwrap();
 
         let renamed = rename_design(&root, "Ideas", "Sketch.excalidraw", "Sketch v2").unwrap();
         assert_eq!(renamed.file_name, "Sketch v2.excalidraw");
+        assert_eq!(
+            read_diagram_notes(&root, "Ideas", "Sketch v2.excalidraw").unwrap().text,
+            "Capture open questions.",
+        );
+        assert!(!root
+            .join("Ideas")
+            .join(".Sketch.excalidraw.designbuddy-notes.json")
+            .exists());
 
         let duplicated = duplicate_design(&root, "Ideas", "Sketch v2.excalidraw", "Copy").unwrap();
         assert_eq!(duplicated.file_name, "Copy.excalidraw");
+        assert_eq!(
+            read_diagram_notes(&root, "Ideas", "Copy.excalidraw").unwrap().text,
+            "Capture open questions.",
+        );
 
         delete_design(&root, "Ideas", "Copy.excalidraw").unwrap();
+        assert!(!root
+            .join("Ideas")
+            .join(".Copy.excalidraw.designbuddy-notes.json")
+            .exists());
         let designs = list_designs(&root, "Ideas").unwrap();
         assert_eq!(designs.len(), 1);
         assert_eq!(designs[0].file_name, "Sketch v2.excalidraw");

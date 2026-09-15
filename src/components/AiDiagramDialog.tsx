@@ -115,6 +115,7 @@ export function AiDiagramDialog({
     try {
       const nextAnalysis = await analyzeDiagramPrompt({
         apiKey: settings.apiKey.trim(),
+        apiBaseUrl: settings.apiBaseUrl,
         model,
         description: promptToAnalyze,
         preferredKind: effectiveOutputMode,
@@ -173,6 +174,7 @@ export function AiDiagramDialog({
       if (effectiveOutputMode === "mermaid") {
         const source = await generateMermaidFlowchart({
           apiKey: settings.apiKey.trim(),
+          apiBaseUrl: settings.apiBaseUrl,
           model,
           quality,
           description: finalPrompt,
@@ -183,6 +185,7 @@ export function AiDiagramDialog({
       } else {
         const scene = await generateExcalidrawScene({
           apiKey: settings.apiKey.trim(),
+          apiBaseUrl: settings.apiBaseUrl,
           model,
           quality,
           outputBudget,

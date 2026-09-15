@@ -8,6 +8,7 @@ import {
   Pencil,
   Save,
   Shapes,
+  StickyNote,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutosave } from "../hooks/useAutosave";
@@ -184,6 +185,10 @@ export function EditorView({
   const [initialData, setInitialData] = useState<ExcalidrawScene | null>(null);
   const [autosaveScene, setAutosaveScene] = useState<ExcalidrawScene | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isNotesOpen, setIsNotesOpen] = useState(false);
+  const [notesText, setNotesText] = useState("");
+  const [notesStatus, setNotesStatus] = useState<"loading" | "saved" | "saving" | "unsaved" | "error">("loading");
+  const [notesError, setNotesError] = useState<string | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
   const [isFileActionRunning, setIsFileActionRunning] = useState(false);
   const [pendingAction, setPendingAction] = useState<PendingAction>(null);
@@ -199,6 +204,8 @@ export function EditorView({
     null,
   );
   const latestSceneRef = useRef<ExcalidrawScene | null>(null);
+  const savedNotesRef = useRef("");
+  const latestNotesRef = useRef("");
   const canvasPointerRef = useRef<CanvasPointerPosition | null>(null);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
@@ -258,6 +265,72 @@ export function EditorView({
       cancelled = true;
     };
   }, [fileName, initialScene, project, sceneKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    savedNotesRef.current = "";
+    latestNotesRef.current = "";
+    setNotesText("");
+    setNotesStatus("loading");
+    setNotesError(null);
+
+    void designApi
+      .readDiagramNotes(project, fileName)
+      .then((notes) => {
+        if (cancelled) return;
+        savedNotesRef.current = notes.text;
+        latestNotesRef.current = notes.text;
+        setNotesText(notes.text);
+        setNotesStatus("saved");
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          setNotesStatus("error");
+          setNotesError(String(error));
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fileName, project]);
+
+  useEffect(() => {
+    if (
+      notesStatus === "loading" ||
+      notesStatus === "saving" ||
+      notesText === savedNotesRef.current
+    ) {
+      return;
+    }
+
+    setNotesStatus("unsaved");
+    const timeoutId = window.setTimeout(() => {
+      const textToSave = notesText;
+      setNotesStatus("saving");
+      void designApi
+        .writeDiagramNotes(project, fileName, textToSave)
+        .then((notes) => {
+          savedNotesRef.current = notes.text;
+          if (latestNotesRef.current === notes.text) {
+            setNotesStatus("saved");
+          } else {
+            setNotesStatus("unsaved");
+          }
+        })
+        .catch((error) => {
+          setNotesStatus("error");
+          setNotesError(String(error));
+        });
+    }, 700);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fileName, notesStatus, notesText, project]);
+
+  const handleNotesChange = useCallback((text: string) => {
+    latestNotesRef.current = text;
+    setNotesText(text);
+  }, []);
 
   const title = useMemo(() => fileName.replace(/\.excalidraw$/, ""), [fileName]);
 
@@ -511,6 +584,23 @@ export function EditorView({
         return;
       }
 
+      const isNotesShortcut =
+        pendingAction === null &&
+        event.key.toLowerCase() === "n" &&
+        !event.metaKey &&
+        !event.ctrlKey &&
+        !event.altKey &&
+        !event.shiftKey &&
+        (event.target === document.body ||
+          (event.target instanceof HTMLElement &&
+            event.target.closest(".canvas-wrap") !== null));
+
+      if (isNotesShortcut) {
+        event.preventDefault();
+        setIsNotesOpen((isOpen) => !isOpen);
+        return;
+      }
+
       const component = findTwilioComponentByShortcut(
         twilioShortcutSettings.shortcuts,
         event.key,
@@ -571,6 +661,17 @@ export function EditorView({
           <strong>{title}</strong>
         </div>
         <div className="save-cluster">
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => setIsNotesOpen((isOpen) => !isOpen)}
+            aria-label={isNotesOpen ? "Hide diagram notes" : "Show diagram notes"}
+            title={isNotesOpen ? "Hide notes (N)" : "Show notes (N)"}
+            aria-pressed={isNotesOpen}
+            disabled={isBusy || !initialData}
+          >
+            <StickyNote size={16} />
+          </button>
           <button
             type="button"
             className="icon-button"
@@ -645,7 +746,7 @@ export function EditorView({
         <main className="empty-state">{loadError}</main>
       ) : initialData ? (
         <main
-          className="canvas-wrap"
+          className={`canvas-wrap${isNotesOpen ? " notes-open" : ""}`}
           onMouseMove={(event) => {
             canvasPointerRef.current = {
               clientX: event.clientX,
@@ -659,6 +760,34 @@ export function EditorView({
             onChange={handleSceneChange as never}
             aiEnabled={false}
           />
+          {isNotesOpen ? (
+            <aside className="diagram-notes-panel" aria-label="Diagram notes">
+              <header className="diagram-notes-header">
+                <div>
+                  <h2>Notes</h2>
+                </div>
+                <button
+                  type="button"
+                  className="icon-button"
+                  onClick={() => setIsNotesOpen(false)}
+                  aria-label="Hide diagram notes"
+                  title="Hide notes (N)"
+                >
+                  ×
+                </button>
+              </header>
+              <textarea
+                value={notesText}
+                onChange={(event) => handleNotesChange(event.target.value)}
+                placeholder="Add notes for this diagram…"
+                aria-label="Diagram notes"
+                disabled={notesStatus === "loading"}
+              />
+              <footer className={`diagram-notes-status ${notesStatus}`}>
+                {notesError ?? (notesStatus === "saving" ? "Saving…" : notesStatus === "unsaved" ? "Unsaved changes" : "Saved with this diagram")}
+              </footer>
+            </aside>
+          ) : null}
           {autosave.error ? <div className="save-error">{autosave.error}</div> : null}
         </main>
       ) : (

@@ -1,6 +1,6 @@
 pub mod designs;
 
-use designs::{BackupResult, DesignKind, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
+use designs::{BackupResult, DesignKind, DiagramNotes, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
@@ -116,6 +116,27 @@ fn write_design(
 }
 
 #[tauri::command]
+fn read_diagram_notes(
+    app: tauri::AppHandle,
+    project: String,
+    file_name: String,
+) -> Result<DiagramNotes, String> {
+    designs::read_diagram_notes(&designs_root(&app)?, &project, &file_name)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+fn write_diagram_notes(
+    app: tauri::AppHandle,
+    project: String,
+    file_name: String,
+    text: String,
+) -> Result<DiagramNotes, String> {
+    designs::write_diagram_notes(&designs_root(&app)?, &project, &file_name, &text)
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn rename_design(
     app: tauri::AppHandle,
     project: String,
@@ -216,6 +237,8 @@ pub fn run() {
             create_design,
             read_design,
             write_design,
+            read_diagram_notes,
+            write_diagram_notes,
             rename_design,
             duplicate_design,
             delete_design,

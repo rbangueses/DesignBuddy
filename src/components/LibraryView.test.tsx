@@ -495,7 +495,7 @@ describe("LibraryView", () => {
 
     let dialog = screen.getByRole("dialog", { name: "Settings" });
     await user.type(
-      within(dialog).getByLabelText("OpenAI API key"),
+      within(dialog).getByLabelText("AI API key"),
       "sk-test",
     );
     await user.selectOptions(

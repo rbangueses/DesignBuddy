@@ -986,6 +986,12 @@ textarea {
   color: #9b1c1c;
 }
 
+.settings-version {
+  margin: 18px 0 0;
+  color: #676b73;
+  font-size: 12px;
+}
+
 .save-button {
   display: inline-flex;
   align-items: center;
@@ -1033,6 +1039,69 @@ textarea {
 
 .canvas-wrap .excalidraw {
   height: calc(100vh - 56px);
+}
+
+.canvas-wrap.notes-open {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  background: #f7f7f4;
+}
+
+.diagram-notes-panel {
+  min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  border-left: 1px solid #deded8;
+  background: #ffffff;
+}
+
+.diagram-notes-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #eeeeea;
+}
+
+.diagram-notes-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.diagram-notes-panel textarea {
+  min-height: 0;
+  width: 100%;
+  resize: none;
+  border: 0;
+  outline: 0;
+  padding: 16px;
+  color: #202124;
+  line-height: 1.55;
+}
+
+.diagram-notes-status {
+  border-top: 1px solid #eeeeea;
+  padding: 10px 16px;
+  color: #676b73;
+  font-size: 12px;
+}
+
+.diagram-notes-status.error {
+  color: #9b1c1c;
+}
+
+@media (max-width: 900px) {
+  .canvas-wrap.notes-open {
+    display: block;
+  }
+
+  .diagram-notes-panel {
+    position: absolute;
+    inset: 0 0 0 auto;
+    width: min(390px, 88vw);
+    box-shadow: -12px 0 28px rgb(32 33 36 / 15%);
+  }
 }
 
 .mermaid-editor-grid {

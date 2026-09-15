@@ -39,6 +39,10 @@ export type RestoreResult = {
   invalidFileCount: number;
 };
 
+export type DiagramNotes = {
+  text: string;
+};
+
 export type DesignKind = "excalidraw" | "mermaid" | "note";
 
 export type MermaidDesignContent = {
