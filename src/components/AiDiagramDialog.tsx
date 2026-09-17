@@ -47,6 +47,8 @@ export function AiDiagramDialog({
   const [quality, setQuality] = useState<AiQuality>(settings.quality);
   const [outputBudget, setOutputBudget] =
     useState<AiOutputBudget>("standard");
+  const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState(80_000);
+  const [timeoutSeconds, setTimeoutSeconds] = useState(90);
   const [outputMode, setOutputMode] = useState<AiOutputKind>("excalidraw");
   const enableMermaid = settings.enableMermaid;
   const effectiveOutputMode = enableMermaid ? outputMode : "excalidraw";
@@ -63,6 +65,8 @@ export function AiDiagramDialog({
   const customModelId = useId();
   const qualityId = useId();
   const outputBudgetId = useId();
+  const customMaxOutputTokensId = useId();
+  const timeoutSecondsId = useId();
   const errorId = useId();
 
   function resetAnalysis() {
@@ -92,11 +96,36 @@ export function AiDiagramDialog({
     return trimmedPrompt;
   }
 
+  function validateRequestLimits() {
+    if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 600) {
+      setError("Request timeout must be between 30 and 600 seconds.");
+      return null;
+    }
+
+    if (
+      outputBudget === "custom" &&
+      (!Number.isInteger(customMaxOutputTokens) ||
+        customMaxOutputTokens < 1_000 ||
+        customMaxOutputTokens > 120_000)
+    ) {
+      setError("Custom output tokens must be between 1,000 and 120,000.");
+      return null;
+    }
+
+    return { timeoutMs: timeoutSeconds * 1_000 };
+  }
+
   async function handleAnalyzePrompt(sourcePrompt?: string) {
     const trimmedPrompt = validateRequest();
     const promptToAnalyze = sourcePrompt?.trim() || trimmedPrompt;
 
     if (!promptToAnalyze) {
+      return;
+    }
+
+    const requestLimits = validateRequestLimits();
+
+    if (!requestLimits) {
       return;
     }
 
@@ -120,6 +149,7 @@ export function AiDiagramDialog({
         description: promptToAnalyze,
         preferredKind: effectiveOutputMode,
         signal: abortController.signal,
+        timeoutMs: requestLimits.timeoutMs,
       });
 
       setAnalysis(nextAnalysis);
@@ -158,6 +188,12 @@ export function AiDiagramDialog({
       return;
     }
 
+    const requestLimits = validateRequestLimits();
+
+    if (!requestLimits) {
+      return;
+    }
+
     const model = resolveAiModel({
       ...settings,
       selectedModel,
@@ -179,6 +215,7 @@ export function AiDiagramDialog({
           quality,
           description: finalPrompt,
           signal: abortController.signal,
+          timeoutMs: requestLimits.timeoutMs,
         });
 
         await onGenerated({ kind: "mermaid", name: name.trim(), source });
@@ -189,8 +226,11 @@ export function AiDiagramDialog({
           model,
           quality,
           outputBudget,
+          customMaxOutputTokens:
+            outputBudget === "custom" ? customMaxOutputTokens : undefined,
           prompt: finalPrompt,
           signal: abortController.signal,
+          timeoutMs: requestLimits.timeoutMs,
         });
 
         await onGenerated({ kind: "excalidraw", name: name.trim(), scene });
@@ -319,6 +359,35 @@ export function AiDiagramDialog({
                     </option>
                   ))}
                 </select>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="ai-request-limits">
+            <div>
+              <label htmlFor={timeoutSecondsId}>Request timeout (seconds)</label>
+              <input
+                id={timeoutSecondsId}
+                type="number"
+                min="30"
+                max="600"
+                step="30"
+                value={timeoutSeconds}
+                onChange={(event) => setTimeoutSeconds(Number(event.target.value))}
+              />
+            </div>
+            {effectiveOutputMode === "excalidraw" && outputBudget === "custom" ? (
+              <div>
+                <label htmlFor={customMaxOutputTokensId}>Custom output token limit</label>
+                <input
+                  id={customMaxOutputTokensId}
+                  type="number"
+                  min="1000"
+                  max="120000"
+                  step="1000"
+                  value={customMaxOutputTokens}
+                  onChange={(event) => setCustomMaxOutputTokens(Number(event.target.value))}
+                />
               </div>
             ) : null}
           </div>

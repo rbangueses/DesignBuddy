@@ -11,7 +11,7 @@ DesignBuddy is a local-first desktop project workspace powered by Excalidraw. It
 - Autosave designs locally as `.excalidraw` files.
 - Create and edit Mermaid flowcharts as local `.mmd` files.
 - Create rich text notes as local `.bdnote` files.
-- Generate AI diagrams as either Excalidraw scenes or Mermaid flowcharts.
+- Generate AI diagrams as either Excalidraw scenes or Mermaid flowcharts, with configurable request timeouts and custom Excalidraw token limits for demanding prompts.
 - Modify existing Excalidraw and Mermaid diagrams with AI prompts.
 - Convert supported Mermaid flowcharts into editable Excalidraw designs.
 - Insert ready-made Twilio architecture blocks into Excalidraw diagrams.

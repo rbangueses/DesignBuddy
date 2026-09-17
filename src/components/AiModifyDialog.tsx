@@ -38,6 +38,8 @@ export function AiModifyDialog({
   const [quality, setQuality] = useState<AiQuality>(settings.quality);
   const [outputBudget, setOutputBudget] =
     useState<AiOutputBudget>("standard");
+  const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState(80_000);
+  const [timeoutSeconds, setTimeoutSeconds] = useState(90);
   const [error, setError] = useState<string | null>(null);
   const [isConfirmingEstimate, setIsConfirmingEstimate] = useState(false);
   const [isModifying, setIsModifying] = useState(false);
@@ -47,6 +49,8 @@ export function AiModifyDialog({
   const customModelId = useId();
   const qualityId = useId();
   const outputBudgetId = useId();
+  const customMaxOutputTokensId = useId();
+  const timeoutSecondsId = useId();
   const errorId = useId();
 
   function validateRequest() {
@@ -63,6 +67,25 @@ export function AiModifyDialog({
     }
 
     return trimmedInstruction;
+  }
+
+  function validateRequestLimits() {
+    if (!Number.isInteger(timeoutSeconds) || timeoutSeconds < 30 || timeoutSeconds > 600) {
+      setError("Request timeout must be between 30 and 600 seconds.");
+      return null;
+    }
+
+    if (
+      outputBudget === "custom" &&
+      (!Number.isInteger(customMaxOutputTokens) ||
+        customMaxOutputTokens < 1_000 ||
+        customMaxOutputTokens > 120_000)
+    ) {
+      setError("Custom output tokens must be between 1,000 and 120,000.");
+      return null;
+    }
+
+    return { timeoutMs: timeoutSeconds * 1_000 };
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -82,6 +105,13 @@ export function AiModifyDialog({
     const trimmedInstruction = validateRequest();
 
     if (!trimmedInstruction) {
+      setIsConfirmingEstimate(false);
+      return;
+    }
+
+    const requestLimits = validateRequestLimits();
+
+    if (!requestLimits) {
       setIsConfirmingEstimate(false);
       return;
     }
@@ -106,9 +136,12 @@ export function AiModifyDialog({
         model,
         quality,
         outputBudget,
+        customMaxOutputTokens:
+          outputBudget === "custom" ? customMaxOutputTokens : undefined,
         instruction: trimmedInstruction,
         scene,
         signal: abortController.signal,
+        timeoutMs: requestLimits.timeoutMs,
       });
 
       onModified(modifiedScene);
@@ -205,6 +238,41 @@ export function AiModifyDialog({
             </div>
           </div>
 
+          <div className="ai-request-limits">
+            <div>
+              <label htmlFor={timeoutSecondsId}>Request timeout (seconds)</label>
+              <input
+                id={timeoutSecondsId}
+                type="number"
+                min="30"
+                max="600"
+                step="30"
+                value={timeoutSeconds}
+                onChange={(event) => {
+                  setTimeoutSeconds(Number(event.target.value));
+                  setIsConfirmingEstimate(false);
+                }}
+              />
+            </div>
+            {outputBudget === "custom" ? (
+              <div>
+                <label htmlFor={customMaxOutputTokensId}>Custom output token limit</label>
+                <input
+                  id={customMaxOutputTokensId}
+                  type="number"
+                  min="1000"
+                  max="120000"
+                  step="1000"
+                  value={customMaxOutputTokens}
+                  onChange={(event) => {
+                    setCustomMaxOutputTokens(Number(event.target.value));
+                    setIsConfirmingEstimate(false);
+                  }}
+                />
+              </div>
+            ) : null}
+          </div>
+
           {selectedModel === "custom" ? (
             <>
               <label htmlFor={customModelId}>Custom model</label>
@@ -228,6 +296,9 @@ export function AiModifyDialog({
               kind="excalidraw"
               quality={quality}
               outputBudget={outputBudget}
+              customMaxOutputTokens={
+                outputBudget === "custom" ? customMaxOutputTokens : undefined
+              }
               isModify
               promptLength={instruction.trim().length}
             />

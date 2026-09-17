@@ -114,6 +114,60 @@ describe("AiDiagramDialog", () => {
     });
   });
 
+  it("passes custom request limits to analysis and Excalidraw generation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(analyzeDiagramPrompt).mockResolvedValue({
+      recommendedKind: "excalidraw",
+      recommendedQuality: "balanced",
+      recommendedBudget: "standard",
+      expectedOutputTokenRange: "10k-20k",
+      completionRisk: "Low",
+      reason: "A compact diagram is sufficient.",
+      optimizedPrompt: "Create a compact architecture diagram.",
+    });
+    vi.mocked(generateExcalidrawScene).mockResolvedValue(generatedScene);
+
+    render(
+      <AiDiagramDialog
+        settings={settings}
+        onCancel={vi.fn()}
+        onGenerated={vi.fn()}
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    await user.type(
+      within(dialog).getByLabelText("Diagram description"),
+      "Draw an architecture",
+    );
+    await user.clear(within(dialog).getByLabelText("Request timeout (seconds)"));
+    await user.type(within(dialog).getByLabelText("Request timeout (seconds)"), "180");
+    await user.click(within(dialog).getByRole("button", { name: "Analyze prompt" }));
+
+    await waitFor(() =>
+      expect(analyzeDiagramPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ timeoutMs: 180_000 }),
+      ),
+    );
+    await user.selectOptions(
+      within(dialog).getByLabelText("Output token budget"),
+      "custom",
+    );
+    await user.clear(within(dialog).getByLabelText("Custom output token limit"));
+    await user.type(within(dialog).getByLabelText("Custom output token limit"), "75000");
+    await user.click(within(dialog).getByRole("button", { name: "Generate" }));
+
+    await waitFor(() =>
+      expect(generateExcalidrawScene).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outputBudget: "custom",
+          customMaxOutputTokens: 75_000,
+          timeoutMs: 180_000,
+        }),
+      ),
+    );
+  });
+
   it("keeps an explicit Mermaid selection without Excalidraw budget controls", async () => {
     const user = userEvent.setup();
     vi.mocked(analyzeDiagramPrompt).mockResolvedValue({

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-09-17 — 0.3.2
+
+- Added per-request AI controls for timeout (30–600 seconds) and custom Excalidraw output limits (1,000–120,000 tokens). These limits apply to prompt analysis and generation, and are also available when modifying an existing Excalidraw diagram.
+
 ## 2026-09-15 — 0.3.1
 
 - Added a Move button to artifact editors and library rows. Move a diagram or note into another project without exporting or reimporting it.

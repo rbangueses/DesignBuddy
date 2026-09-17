@@ -1,6 +1,6 @@
 import type { AiQuality } from "./aiSettings";
 
-export type AiOutputBudget = "standard" | "extended" | "maximum";
+export type AiOutputBudget = "standard" | "extended" | "maximum" | "custom";
 export type AiOutputKind = "excalidraw" | "mermaid";
 export type CompletionRisk = "Low" | "Medium" | "High";
 
@@ -20,6 +20,11 @@ export const AI_OUTPUT_BUDGET_OPTIONS = [
     label: "Maximum",
     description: "Highest app-supported Excalidraw budget",
   },
+  {
+    id: "custom",
+    label: "Custom",
+    description: "Set a specific output token limit",
+  },
 ] as const;
 
 const EXCALIDRAW_STANDARD_OUTPUT_TOKENS: Record<AiQuality, number> = {
@@ -28,7 +33,10 @@ const EXCALIDRAW_STANDARD_OUTPUT_TOKENS: Record<AiQuality, number> = {
   high: 40_000,
 };
 
-const EXCALIDRAW_BUDGET_OUTPUT_TOKENS: Record<AiOutputBudget, number> = {
+const EXCALIDRAW_BUDGET_OUTPUT_TOKENS: Record<
+  Exclude<AiOutputBudget, "custom">,
+  number
+> = {
   standard: 0,
   extended: 60_000,
   maximum: 80_000,
@@ -43,7 +51,12 @@ const MERMAID_OUTPUT_TOKENS: Record<AiQuality, number> = {
 export function getExcalidrawMaxOutputTokens(
   quality: AiQuality,
   outputBudget: AiOutputBudget = "standard",
+  customMaxOutputTokens?: number,
 ) {
+  if (outputBudget === "custom") {
+    return customMaxOutputTokens ?? EXCALIDRAW_STANDARD_OUTPUT_TOKENS[quality];
+  }
+
   if (outputBudget === "standard") {
     return EXCALIDRAW_STANDARD_OUTPUT_TOKENS[quality];
   }

@@ -1,6 +1,6 @@
 [package]
 name = "designbuddy"
-version = "0.3.1"
+version = "0.3.2"
 description = "Local Excalidraw design manager"
 authors = ["DesignBuddy"]
 edition = "2021"

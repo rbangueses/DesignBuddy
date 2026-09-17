@@ -83,6 +83,28 @@ describe("openaiDiagram", () => {
     );
   });
 
+  it("uses a caller-provided custom Excalidraw output limit", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ output_text: JSON.stringify(generatedScene) }),
+    } as Response);
+
+    await generateExcalidrawScene({
+      apiKey: "sk-test",
+      model: "gpt-5.6-luna",
+      quality: "high",
+      outputBudget: "custom",
+      customMaxOutputTokens: 75_000,
+      prompt: "A contact center architecture",
+    });
+
+    const requestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[0]?.[1]?.body),
+    ) as { max_output_tokens: number };
+
+    expect(requestBody.max_output_tokens).toBe(75_000);
+  });
+
   it("analyzes a diagram prompt and returns generation recommendations", async () => {
     vi.mocked(fetch).mockResolvedValue({
       ok: true,

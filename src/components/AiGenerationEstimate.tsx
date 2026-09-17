@@ -12,6 +12,7 @@ type AiGenerationEstimateProps = {
   kind: AiOutputKind;
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
+  customMaxOutputTokens?: number;
   isModify?: boolean;
   promptLength?: number;
 };
@@ -20,13 +21,18 @@ export function AiGenerationEstimate({
   kind,
   quality,
   outputBudget = "standard",
+  customMaxOutputTokens,
   isModify = false,
   promptLength = 0,
 }: AiGenerationEstimateProps) {
   const maxOutputTokens =
     kind === "mermaid"
       ? getMermaidMaxOutputTokens(quality)
-      : getExcalidrawMaxOutputTokens(quality, outputBudget);
+      : getExcalidrawMaxOutputTokens(
+          quality,
+          outputBudget,
+          customMaxOutputTokens,
+        );
   const completionRisk = estimateCompletionRisk({
     kind,
     quality,

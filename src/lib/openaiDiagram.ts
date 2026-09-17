@@ -17,6 +17,7 @@ type GenerateExcalidrawSceneInput = {
   model: string;
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
+  customMaxOutputTokens?: number;
   prompt: string;
   systemPrompt?: string;
   signal?: AbortSignal;
@@ -49,6 +50,7 @@ type ModifyExcalidrawSceneInput = {
   model: string;
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
+  customMaxOutputTokens?: number;
   instruction: string;
   scene: ExcalidrawScene;
   signal?: AbortSignal;
@@ -391,6 +393,7 @@ export async function generateExcalidrawScene({
   model,
   quality,
   outputBudget,
+  customMaxOutputTokens,
   prompt,
   systemPrompt = SYSTEM_PROMPT,
   signal,
@@ -416,7 +419,11 @@ export async function generateExcalidrawScene({
       },
       body: JSON.stringify({
         model,
-        max_output_tokens: getExcalidrawMaxOutputTokens(quality, outputBudget),
+        max_output_tokens: getExcalidrawMaxOutputTokens(
+          quality,
+          outputBudget,
+          customMaxOutputTokens,
+        ),
         reasoning: {
           effort: QUALITY_TO_REASONING_EFFORT[quality],
         },
@@ -501,6 +508,7 @@ export function modifyExcalidrawScene({
   model,
   quality,
   outputBudget,
+  customMaxOutputTokens,
   instruction,
   scene,
   signal,
@@ -512,6 +520,7 @@ export function modifyExcalidrawScene({
     model,
     quality,
     outputBudget,
+    customMaxOutputTokens,
     signal,
     timeoutMs,
     systemPrompt: MODIFY_SYSTEM_PROMPT,

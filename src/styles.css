@@ -797,6 +797,17 @@ textarea {
   gap: 12px;
 }
 
+.ai-request-limits {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.ai-request-limits:has(> :only-child) {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .ai-estimate,
 .ai-recommendation {
   margin-top: 14px;
@@ -849,6 +860,10 @@ textarea {
 
 @media (max-width: 760px) {
   .ai-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ai-request-limits {
     grid-template-columns: minmax(0, 1fr);
   }
 
