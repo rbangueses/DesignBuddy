@@ -40,6 +40,8 @@ export type AiSettings = {
   customModel: string;
   quality: AiQuality;
   enableMermaid: boolean;
+  enableDiagnostics: boolean;
+  includeDiagnosticRawResponses: boolean;
 };
 
 export const DEFAULT_AI_SETTINGS: AiSettings = {
@@ -49,6 +51,8 @@ export const DEFAULT_AI_SETTINGS: AiSettings = {
   customModel: "",
   quality: "balanced",
   enableMermaid: true,
+  enableDiagnostics: false,
+  includeDiagnosticRawResponses: false,
 };
 
 function isAiModelId(value: unknown): value is AiModelId {
@@ -91,6 +95,14 @@ function sanitizeAiSettings(value: unknown): AiSettings {
       typeof candidate.enableMermaid === "boolean"
         ? candidate.enableMermaid
         : DEFAULT_AI_SETTINGS.enableMermaid,
+    enableDiagnostics:
+      typeof candidate.enableDiagnostics === "boolean"
+        ? candidate.enableDiagnostics
+        : DEFAULT_AI_SETTINGS.enableDiagnostics,
+    includeDiagnosticRawResponses:
+      typeof candidate.includeDiagnosticRawResponses === "boolean"
+        ? candidate.includeDiagnosticRawResponses
+        : DEFAULT_AI_SETTINGS.includeDiagnosticRawResponses,
   };
 }
 

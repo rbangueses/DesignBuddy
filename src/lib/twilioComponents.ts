@@ -263,6 +263,21 @@ export function getTwilioComponent(componentId: TwilioComponentId) {
   return component;
 }
 
+/**
+ * Finds a library component from the label used in a compact flowchart.
+ * This deliberately accepts only the library's own names: generic labels
+ * such as "Backend" or "Agent infrastructure" must remain ordinary nodes.
+ */
+export function findTwilioComponentIdByLabel(label: string): TwilioComponentId | null {
+  const normalized = label.trim().replace(/\s+/g, " ").toLowerCase();
+  const component = TWILIO_COMPONENTS.find(
+    ({ label: componentLabel }) =>
+      componentLabel.trim().replace(/\s+/g, " ").toLowerCase() === normalized,
+  );
+
+  return component?.id ?? null;
+}
+
 export function getTwilioComponentColors(component: TwilioComponent) {
   if (component.tone === "external") {
     return {
@@ -368,4 +383,76 @@ export function createTwilioComponentElements(
       lineHeight: 1.25,
     },
   ];
+}
+
+export function applyTwilioComponentTemplates(
+  elements: unknown[],
+  fontFamily: TwilioComponentFontFamily = DEFAULT_TWILIO_COMPONENT_FONT_FAMILY,
+) {
+  const replacements = new Map<string, string>();
+  const boundLabelIds = new Set<string>();
+  const nextElements: unknown[] = [];
+
+  for (const element of elements) {
+    if (!element || typeof element !== "object") {
+      nextElements.push(element);
+      continue;
+    }
+
+    const candidate = element as Record<string, unknown>;
+    const customData = candidate.customData;
+    const componentId =
+      customData && typeof customData === "object"
+        ? (customData as Record<string, unknown>).designbuddyComponentId
+        : null;
+
+    if (
+      typeof componentId !== "string" ||
+      !TWILIO_COMPONENTS.some((component) => component.id === componentId) ||
+      typeof candidate.id !== "string" ||
+      typeof candidate.x !== "number" ||
+      typeof candidate.y !== "number"
+    ) {
+      nextElements.push(element);
+      continue;
+    }
+
+    const originalWidth = typeof candidate.width === "number" ? candidate.width : TWILIO_COMPONENT_WIDTH;
+    const originalHeight = typeof candidate.height === "number" ? candidate.height : TWILIO_COMPONENT_HEIGHT;
+    const template = createTwilioComponentElements(
+      componentId as TwilioComponentId,
+      { x: candidate.x + originalWidth / 2 - TWILIO_COMPONENT_WIDTH / 2, y: candidate.y + originalHeight / 2 - TWILIO_COMPONENT_HEIGHT / 2 },
+      fontFamily,
+    );
+    const templateBox = template[0];
+    replacements.set(candidate.id, templateBox.id);
+
+    if (Array.isArray(candidate.boundElements)) {
+      candidate.boundElements.forEach((boundElement) => {
+        if (
+          boundElement &&
+          typeof boundElement === "object" &&
+          (boundElement as Record<string, unknown>).type === "text" &&
+          typeof (boundElement as Record<string, unknown>).id === "string"
+        ) {
+          boundLabelIds.add((boundElement as Record<string, string>).id);
+        }
+      });
+    }
+    nextElements.push(...template);
+  }
+
+  return nextElements
+    .filter((element) => !(element && typeof element === "object" && boundLabelIds.has((element as Record<string, unknown>).id as string)))
+    .map((element) => {
+      if (!element || typeof element !== "object") return element;
+      const candidate = element as Record<string, unknown>;
+      const remapBinding = (binding: unknown) => {
+        if (!binding || typeof binding !== "object") return binding;
+        const bindingRecord = binding as Record<string, unknown>;
+        const replacementId = typeof bindingRecord.elementId === "string" ? replacements.get(bindingRecord.elementId) : undefined;
+        return replacementId ? { ...bindingRecord, elementId: replacementId } : binding;
+      };
+      return { ...candidate, startBinding: remapBinding(candidate.startBinding), endBinding: remapBinding(candidate.endBinding) };
+    });
 }

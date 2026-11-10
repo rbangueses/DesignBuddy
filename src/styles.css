@@ -527,6 +527,13 @@ textarea {
   font-size: 15px;
 }
 
+.diagnostics-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .settings-help,
 .settings-status {
   margin: 0 0 10px;
@@ -791,10 +798,81 @@ textarea {
   color: #ffffff;
 }
 
+.ai-mode-description {
+  margin: 8px 0 0;
+  max-width: 680px;
+  color: #5f6368;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
 .ai-field-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+}
+
+.ai-reference-image {
+  margin-top: 10px;
+}
+
+.ai-reference-image-label {
+  display: block;
+  color: #3c4043;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ai-reference-image p {
+  margin: 3px 0 8px;
+  color: #5f6368;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.ai-reference-image > input {
+  display: none;
+}
+
+.ai-reference-image-add {
+  width: 100%;
+  border: 1px dashed #b9b9b2;
+  border-radius: 7px;
+  background: #fbfbf8;
+  color: #3c4043;
+  padding: 9px 12px;
+  text-align: left;
+}
+
+.ai-reference-image-preview {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #deded8;
+  border-radius: 7px;
+  padding: 7px;
+}
+
+.ai-reference-image-preview img {
+  width: 48px;
+  height: 38px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.ai-reference-image-preview strong,
+.ai-reference-image-preview span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-reference-image-preview span {
+  margin-top: 2px;
+  color: #5f6368;
+  font-size: 12px;
 }
 
 .ai-request-limits {

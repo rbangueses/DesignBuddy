@@ -11,7 +11,8 @@ DesignBuddy is a local-first desktop project workspace powered by Excalidraw. It
 - Autosave designs locally as `.excalidraw` files.
 - Create and edit Mermaid flowcharts as local `.mmd` files.
 - Create rich text notes as local `.bdnote` files.
-- Generate AI diagrams as either Excalidraw scenes or Mermaid flowcharts, with configurable request timeouts and custom Excalidraw token limits for demanding prompts.
+- Generate AI diagrams as editable Excalidraw scenes or Mermaid flowcharts, with configurable request timeouts and custom Excalidraw token limits for demanding prompts.
+- Attach a reference image to an AI prompt to recreate or extend a diagram as editable elements, or choose Clean architecture mode for structured, presentation-oriented architecture diagrams.
 - Modify existing Excalidraw and Mermaid diagrams with AI prompts.
 - Convert supported Mermaid flowcharts into editable Excalidraw designs.
 - Insert ready-made Twilio architecture blocks into Excalidraw diagrams.
@@ -189,10 +190,14 @@ From the library, you can generate a new diagram from a prompt and choose:
 - Excalidraw output for fully editable sketch-style diagrams
 - Mermaid output for cheaper, more compact structured flowcharts
 - model and quality level
+- an optional reference image to recreate or extend as editable elements
+- **Reference draft** for a flexible image-informed Excalidraw draft, or **Clean architecture** for a structured architecture layout using DesignBuddy's component library where applicable
 
 From an existing design, you can also ask AI to modify the current diagram. Excalidraw modification updates the editable scene. Mermaid modification updates the Mermaid source.
 
 AI requests are sent to OpenAI only when you explicitly use an AI action. Regular drawing, local storage, import, export, and project management do not require a network connection.
+
+AI diagnostics are optional and stored locally. Enable them from AI settings when troubleshooting a request; you can download diagnostics as JSON, with raw model responses included only when you explicitly enable that export option.
 
 ## Migration From BanguesesDraw
 

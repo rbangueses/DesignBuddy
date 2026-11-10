@@ -15,6 +15,8 @@ const settings = {
   customModel: "",
   quality: "draft" as const,
   enableMermaid: true,
+  enableDiagnostics: false,
+  includeDiagnosticRawResponses: false,
 };
 
 describe("AiMermaidModifyDialog", () => {

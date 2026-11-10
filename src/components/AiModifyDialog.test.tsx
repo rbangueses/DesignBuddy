@@ -16,6 +16,8 @@ const settings = {
   customModel: "",
   quality: "balanced" as const,
   enableMermaid: true,
+  enableDiagnostics: false,
+  includeDiagnosticRawResponses: false,
 };
 
 const scene: ExcalidrawScene = {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { isExcalidrawScene } from "./sceneValidation";
-import { mermaidToExcalidrawScene } from "./mermaidToExcalidraw";
+import {
+  mermaidToCleanArchitectureScene,
+  mermaidToExcalidrawScene,
+} from "./mermaidToExcalidraw";
 
 function textPosition(scene: ReturnType<typeof mermaidToExcalidrawScene>, text: string) {
   const element = scene.elements.find(
@@ -73,6 +76,75 @@ function overlaps(
 }
 
 describe("mermaidToExcalidrawScene", () => {
+  it("renders exact library labels as native DesignBuddy components in clean architecture mode", () => {
+    const scene = mermaidToCleanArchitectureScene(
+      "flowchart LR\nUSER[User] --> VOICE[Prog. Voice] --> BACKEND[Backend]\n",
+    );
+    const voiceShape = scene.elements.find(
+      (element) =>
+        typeof element === "object" &&
+        element !== null &&
+        "id" in element &&
+        typeof element.id === "string" &&
+        element.id.startsWith("twilio-voice-box-"),
+    ) as Record<string, unknown> | undefined;
+
+    expect(isExcalidrawScene(scene)).toBe(true);
+    expect(voiceShape?.strokeColor).toBe("#F22F46");
+    expect(JSON.stringify(scene.elements)).toContain("Prog. Voice");
+    expect(JSON.stringify(scene.elements)).toContain("Backend");
+  });
+
+  it("uses Flex from the component library while retaining an imported subtitle", () => {
+    const scene = mermaidToCleanArchitectureScene(
+      "flowchart LR\nVOICE[Prog. Voice] --> FLEX[Flex - Salesforce SCV]\nAGENT[Agent infrastructure] --> VOICE\n",
+    );
+
+    expect(JSON.stringify(scene.elements)).toContain("twilio-flex-box-");
+    expect(JSON.stringify(scene.elements)).toContain("Salesforce SCV");
+  });
+
+  it("keeps voice, messaging, and the agent stack in separate clean architecture lanes", () => {
+    const scene = mermaidToCleanArchitectureScene(
+      [
+        "flowchart LR",
+        "USER[User] --> VOICE[Prog. Voice]",
+        "VOICE -->|Conversation Relay| AGENT[Agent infrastructure]",
+        "AGENT -->|updateCall| VOICE",
+        "VOICE --> FLEX[Flex]",
+        "USER --> TWILIO(Twilio)",
+        "TWILIO --> MSG[Prog. Messaging]",
+        "MSG --> BACKEND[Messaging webhook / backend]",
+        "BACKEND --> AGENT",
+        "AGENT --> MSG",
+        "MSG --> USER",
+        "AGENT --> LLM[LLM]",
+        "AGENT --> LOGIC[Business logic]",
+        "AGENT --> TOOLS[Tools]",
+      ].join("\n"),
+    );
+    const componentBox = (component: string) => {
+      const element = scene.elements.find(
+        (candidate) =>
+          typeof candidate === "object" &&
+          candidate !== null &&
+          "id" in candidate &&
+          typeof candidate.id === "string" &&
+          candidate.id.startsWith(`twilio-${component}-box-`),
+      ) as Record<string, unknown> | undefined;
+      if (!element) throw new Error(`Missing ${component} component`);
+      return element;
+    };
+    const voice = componentBox("voice");
+    const messaging = componentBox("messaging");
+    const flex = componentBox("flex");
+
+    expect(Number(voice.y)).toBeLessThan(Number(flex.y));
+    expect(Number(flex.y)).toBeLessThan(Number(messaging.y));
+    expect(Number(messaging.x)).toBeLessThan(700);
+    expect(isExcalidrawScene(scene)).toBe(true);
+  });
+
   it("creates a valid Excalidraw scene from a simple flowchart", () => {
     const scene = mermaidToExcalidrawScene(
       "flowchart LR\n  A[Start] -->|go| B[Done]\n",

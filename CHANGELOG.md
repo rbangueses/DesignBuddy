@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-10 — 0.3.3
+
+- Added optional reference-image input for AI diagram creation and prompt analysis. DesignBuddy sends the image only for the requested AI action and creates editable diagram elements rather than embedding the source image.
+- Added **Clean architecture** generation mode for structured, presentation-oriented Excalidraw architecture diagrams. It uses the Twilio component library where applicable and applies deterministic layout and routing for common voice, messaging, backend, and agent patterns.
+- Added local AI diagnostics controls, including optional raw-response export for troubleshooting. Diagnostics remain on the device unless you explicitly download and share them.
+
 ## 2026-09-17 — 0.3.2
 
 - Added per-request AI controls for timeout (30–600 seconds) and custom Excalidraw output limits (1,000–120,000 tokens). These limits apply to prompt analysis and generation, and are also available when modifying an existing Excalidraw diagram.

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   analyzeDiagramPrompt,
+  generateCleanArchitectureScene,
   generateExcalidrawScene,
   generateMermaidFlowchart,
 } from "../lib/openaiDiagram";
@@ -11,6 +12,7 @@ import { AiDiagramDialog } from "./AiDiagramDialog";
 
 vi.mock("../lib/openaiDiagram", () => ({
   analyzeDiagramPrompt: vi.fn(),
+  generateCleanArchitectureScene: vi.fn(),
   generateExcalidrawScene: vi.fn(),
   generateMermaidFlowchart: vi.fn(),
 }));
@@ -22,6 +24,8 @@ const settings = {
   customModel: "",
   quality: "balanced" as const,
   enableMermaid: true,
+  enableDiagnostics: false,
+  includeDiagnosticRawResponses: false,
 };
 
 const generatedScene: ExcalidrawScene = {
@@ -34,6 +38,7 @@ const generatedScene: ExcalidrawScene = {
 describe("AiDiagramDialog", () => {
   beforeEach(() => {
     vi.mocked(analyzeDiagramPrompt).mockReset();
+    vi.mocked(generateCleanArchitectureScene).mockReset();
     vi.mocked(generateExcalidrawScene).mockReset();
     vi.mocked(generateMermaidFlowchart).mockReset();
   });
@@ -168,6 +173,44 @@ describe("AiDiagramDialog", () => {
     );
   });
 
+  it("sends an attached reference image to analysis and generation", async () => {
+    const user = userEvent.setup();
+    vi.mocked(analyzeDiagramPrompt).mockResolvedValue({
+      recommendedKind: "excalidraw",
+      recommendedQuality: "balanced",
+      recommendedBudget: "standard",
+      expectedOutputTokenRange: "10k-20k",
+      completionRisk: "Low",
+      reason: "A compact diagram is sufficient.",
+      optimizedPrompt: "Recreate the reference as an editable diagram.",
+    });
+    vi.mocked(generateExcalidrawScene).mockResolvedValue(generatedScene);
+
+    render(<AiDiagramDialog settings={settings} onCancel={vi.fn()} onGenerated={vi.fn()} />);
+
+    const dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    await user.type(within(dialog).getByLabelText("Diagram description"), "Recreate this.");
+    const image = new File(["image"], "flow.png", { type: "image/png" });
+    await user.upload(within(dialog).getByLabelText("Choose reference image"), image);
+    await user.click(within(dialog).getByRole("button", { name: "Analyze prompt" }));
+
+    await waitFor(() =>
+      expect(analyzeDiagramPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          referenceImage: expect.objectContaining({ name: "flow.png" }),
+        }),
+      ),
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Generate" }));
+    await waitFor(() =>
+      expect(generateExcalidrawScene).toHaveBeenCalledWith(
+        expect.objectContaining({
+          referenceImage: expect.objectContaining({ name: "flow.png" }),
+        }),
+      ),
+    );
+  });
+
   it("keeps an explicit Mermaid selection without Excalidraw budget controls", async () => {
     const user = userEvent.setup();
     vi.mocked(analyzeDiagramPrompt).mockResolvedValue({
@@ -244,7 +287,7 @@ describe("AiDiagramDialog", () => {
 
     const dialog = screen.getByRole("dialog", { name: "AI diagram" });
     expect(
-      within(dialog).getByRole("button", { name: "Excalidraw" }),
+      within(dialog).getByRole("button", { name: "Reference draft" }),
     ).toHaveAttribute("aria-pressed", "true");
 
     await user.type(
@@ -262,7 +305,7 @@ describe("AiDiagramDialog", () => {
       expect(within(dialog).getByText("AI recommendation")).toBeVisible(),
     );
     expect(
-      within(dialog).getByRole("button", { name: "Excalidraw" }),
+      within(dialog).getByRole("button", { name: "Reference draft" }),
     ).toHaveAttribute("aria-pressed", "true");
     expect(within(dialog).getByLabelText("Output token budget")).toBeVisible();
 
@@ -276,6 +319,42 @@ describe("AiDiagramDialog", () => {
       ),
     );
     expect(generateMermaidFlowchart).not.toHaveBeenCalled();
+    expect(onGenerated).toHaveBeenCalledWith({
+      kind: "excalidraw",
+      name: "AI Diagram",
+      scene: generatedScene,
+    });
+  });
+
+  it("uses the clean architecture generator while keeping the output editable", async () => {
+    const user = userEvent.setup();
+    const onGenerated = vi.fn();
+    vi.mocked(analyzeDiagramPrompt).mockResolvedValue({
+      recommendedKind: "excalidraw",
+      recommendedQuality: "balanced",
+      recommendedBudget: "standard",
+      expectedOutputTokenRange: "5k-10k",
+      completionRisk: "Low",
+      reason: "A stable architecture layout is appropriate.",
+      optimizedPrompt: "Create a clear architecture flow.",
+    });
+    vi.mocked(generateCleanArchitectureScene).mockResolvedValue(generatedScene);
+
+    render(<AiDiagramDialog settings={settings} onCancel={vi.fn()} onGenerated={onGenerated} />);
+    const dialog = screen.getByRole("dialog", { name: "AI diagram" });
+    await user.click(within(dialog).getByRole("button", { name: "Clean architecture" }));
+    expect(within(dialog).getByText(/Builds a stable, editable architecture layout/)).toBeVisible();
+    expect(within(dialog).queryByLabelText("Output token budget")).not.toBeInTheDocument();
+
+    await user.type(within(dialog).getByLabelText("Diagram description"), "Draw a support architecture");
+    await user.click(within(dialog).getByRole("button", { name: "Analyze prompt" }));
+    await waitFor(() =>
+      expect(analyzeDiagramPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({ preferredKind: "excalidraw" }),
+      ),
+    );
+    await user.click(within(dialog).getByRole("button", { name: "Generate" }));
+    await waitFor(() => expect(generateCleanArchitectureScene).toHaveBeenCalled());
     expect(onGenerated).toHaveBeenCalledWith({
       kind: "excalidraw",
       name: "AI Diagram",

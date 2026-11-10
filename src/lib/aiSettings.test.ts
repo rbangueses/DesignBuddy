@@ -25,6 +25,8 @@ describe("aiSettings", () => {
       customModel: "gpt-custom-diagrams",
       quality: "high",
       enableMermaid: false,
+      enableDiagnostics: true,
+      includeDiagnosticRawResponses: false,
     });
 
     expect(loadAiSettings()).toEqual({
@@ -34,6 +36,8 @@ describe("aiSettings", () => {
       customModel: "gpt-custom-diagrams",
       quality: "high",
       enableMermaid: false,
+      enableDiagnostics: true,
+      includeDiagnosticRawResponses: false,
     });
   });
 

@@ -10,7 +10,12 @@ import {
 } from "../lib/aiSettings";
 import { validateDisplayName } from "../lib/designNames";
 import {
+  readAiReferenceImage,
+  type AiReferenceImage,
+} from "../lib/aiReferenceImage";
+import {
   analyzeDiagramPrompt,
+  generateCleanArchitectureScene,
   generateExcalidrawScene,
   generateMermaidFlowchart,
   type DiagramPromptAnalysis,
@@ -33,6 +38,8 @@ type AiDiagramDialogProps = {
   ) => Promise<void> | void;
 };
 
+type AiGenerationMode = AiOutputKind | "clean-architecture";
+
 export function AiDiagramDialog({
   settings,
   onCancel,
@@ -40,6 +47,8 @@ export function AiDiagramDialog({
 }: AiDiagramDialogProps) {
   const [name, setName] = useState("AI Diagram");
   const [prompt, setPrompt] = useState("");
+  const [referenceImage, setReferenceImage] =
+    useState<AiReferenceImage | null>(null);
   const [selectedModel, setSelectedModel] = useState<AiModelId>(
     settings.selectedModel,
   );
@@ -49,17 +58,20 @@ export function AiDiagramDialog({
     useState<AiOutputBudget>("standard");
   const [customMaxOutputTokens, setCustomMaxOutputTokens] = useState(80_000);
   const [timeoutSeconds, setTimeoutSeconds] = useState(90);
-  const [outputMode, setOutputMode] = useState<AiOutputKind>("excalidraw");
+  const [outputMode, setOutputMode] = useState<AiGenerationMode>("excalidraw");
   const enableMermaid = settings.enableMermaid;
-  const effectiveOutputMode = enableMermaid ? outputMode : "excalidraw";
+  const effectiveOutputMode =
+    outputMode === "mermaid" && !enableMermaid ? "excalidraw" : outputMode;
   const [error, setError] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<DiagramPromptAnalysis | null>(null);
   const [optimizedPrompt, setOptimizedPrompt] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const referenceImageInputRef = useRef<HTMLInputElement | null>(null);
   const nameId = useId();
   const promptId = useId();
+  const referenceImageInputId = useId();
   const optimizedPromptId = useId();
   const modelId = useId();
   const customModelId = useId();
@@ -72,6 +84,24 @@ export function AiDiagramDialog({
   function resetAnalysis() {
     setAnalysis(null);
     setOptimizedPrompt("");
+  }
+
+  async function attachReferenceImage(file: File | undefined) {
+    if (!file) {
+      return;
+    }
+
+    try {
+      const nextReferenceImage = await readAiReferenceImage(file);
+      setReferenceImage(nextReferenceImage);
+      if (timeoutSeconds === 90) {
+        setTimeoutSeconds(300);
+      }
+      setError(null);
+      resetAnalysis();
+    } catch (imageError) {
+      setError(imageError instanceof Error ? imageError.message : String(imageError));
+    }
   }
 
   function validateRequest() {
@@ -147,7 +177,11 @@ export function AiDiagramDialog({
         apiBaseUrl: settings.apiBaseUrl,
         model,
         description: promptToAnalyze,
-        preferredKind: effectiveOutputMode,
+        preferredKind:
+          effectiveOutputMode === "clean-architecture"
+            ? "excalidraw"
+            : effectiveOutputMode,
+        referenceImage,
         signal: abortController.signal,
         timeoutMs: requestLimits.timeoutMs,
       });
@@ -214,11 +248,25 @@ export function AiDiagramDialog({
           model,
           quality,
           description: finalPrompt,
+          referenceImage,
           signal: abortController.signal,
           timeoutMs: requestLimits.timeoutMs,
         });
 
         await onGenerated({ kind: "mermaid", name: name.trim(), source });
+      } else if (effectiveOutputMode === "clean-architecture") {
+        const scene = await generateCleanArchitectureScene({
+          apiKey: settings.apiKey.trim(),
+          apiBaseUrl: settings.apiBaseUrl,
+          model,
+          quality,
+          description: finalPrompt,
+          referenceImage,
+          signal: abortController.signal,
+          timeoutMs: requestLimits.timeoutMs,
+        });
+
+        await onGenerated({ kind: "excalidraw", name: name.trim(), scene });
       } else {
         const scene = await generateExcalidrawScene({
           apiKey: settings.apiKey.trim(),
@@ -229,6 +277,7 @@ export function AiDiagramDialog({
           customMaxOutputTokens:
             outputBudget === "custom" ? customMaxOutputTokens : undefined,
           prompt: finalPrompt,
+          referenceImage,
           signal: abortController.signal,
           timeoutMs: requestLimits.timeoutMs,
         });
@@ -287,8 +336,62 @@ export function AiDiagramDialog({
             rows={6}
           />
 
-          {enableMermaid ? (
-            <div className="segmented-control" aria-label="Diagram output">
+          <div className="ai-reference-image">
+            <div>
+              <span className="ai-reference-image-label">Reference image</span>
+              <p>Optional. Sent to your configured AI provider to recreate an editable draft. Attaching an image raises the default timeout to 300 seconds.</p>
+            </div>
+            {referenceImage ? (
+              <div className="ai-reference-image-preview">
+                <img src={referenceImage.dataUrl} alt="Selected reference" />
+                <div>
+                  <strong>{referenceImage.name}</strong>
+                  <span>Reference only — not added to the canvas</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReferenceImage(null);
+                    resetAnalysis();
+                  }}
+                >
+                  Remove
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="ai-reference-image-add"
+                onClick={() => referenceImageInputRef.current?.click()}
+                onPaste={(event) => {
+                  const imageFile = Array.from(event.clipboardData.files).find((file) =>
+                    file.type.startsWith("image/"),
+                  );
+
+                  if (imageFile) {
+                    event.preventDefault();
+                    void attachReferenceImage(imageFile);
+                  }
+                }}
+              >
+                Add image or paste from clipboard
+              </button>
+            )}
+            <input
+              ref={referenceImageInputRef}
+              id={referenceImageInputId}
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              tabIndex={-1}
+              aria-label="Choose reference image"
+              onChange={(event) => {
+                void attachReferenceImage(event.target.files?.[0]);
+                event.target.value = "";
+              }}
+            />
+          </div>
+
+          <div className="segmented-control" aria-label="Diagram output">
               <button
                 type="button"
                 className={outputMode === "excalidraw" ? "active" : ""}
@@ -297,8 +400,20 @@ export function AiDiagramDialog({
                   setOutputMode("excalidraw");
                 }}
               >
-                Excalidraw
+                Reference draft
               </button>
+              <button
+                type="button"
+                className={outputMode === "clean-architecture" ? "active" : ""}
+                aria-pressed={outputMode === "clean-architecture"}
+                onClick={() => {
+                  setOutputMode("clean-architecture");
+                  resetAnalysis();
+                }}
+              >
+                Clean architecture
+              </button>
+              {enableMermaid ? (
               <button
                 type="button"
                 className={outputMode === "mermaid" ? "active" : ""}
@@ -309,7 +424,15 @@ export function AiDiagramDialog({
               >
                 Mermaid
               </button>
+              ) : null}
             </div>
+
+          {effectiveOutputMode === "clean-architecture" ? (
+            <p className="ai-mode-description">
+              Builds a stable, editable architecture layout. Exact DesignBuddy
+              component names use the component library; image placement is used
+              as a reference rather than copied literally.
+            </p>
           ) : null}
 
           <div className="ai-field-grid">

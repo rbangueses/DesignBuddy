@@ -10,6 +10,14 @@ import {
   type CompletionRisk,
 } from "./aiTokenBudget";
 import type { ExcalidrawScene } from "../types/excalidraw";
+import type { AiReferenceImage } from "./aiReferenceImage";
+import { applyTwilioComponentTemplates, TWILIO_COMPONENTS } from "./twilioComponents";
+import { recordAiDiagnostic, type AiDiagnosticOperation } from "./aiDiagnostics";
+import {
+  cleanArchitectureSpecToExcalidrawScene,
+  normalizeCleanArchitectureSpec,
+  parseCleanArchitectureSpec,
+} from "./cleanArchitecture";
 
 type GenerateExcalidrawSceneInput = {
   apiKey: string;
@@ -18,6 +26,8 @@ type GenerateExcalidrawSceneInput = {
   quality: AiQuality;
   outputBudget?: AiOutputBudget;
   customMaxOutputTokens?: number;
+  referenceImage?: AiReferenceImage | null;
+  diagnosticOperation?: AiDiagnosticOperation;
   prompt: string;
   systemPrompt?: string;
   signal?: AbortSignal;
@@ -30,6 +40,7 @@ type AnalyzeDiagramPromptInput = {
   model: string;
   description: string;
   preferredKind?: AiOutputKind;
+  referenceImage?: AiReferenceImage | null;
   signal?: AbortSignal;
   timeoutMs?: number;
 };
@@ -63,9 +74,12 @@ type GenerateMermaidFlowchartInput = {
   model: string;
   quality: AiQuality;
   description: string;
+  referenceImage?: AiReferenceImage | null;
   signal?: AbortSignal;
   timeoutMs?: number;
 };
+
+type GenerateCleanArchitectureInput = GenerateMermaidFlowchartInput;
 
 type ModifyMermaidFlowchartInput = {
   apiKey: string;
@@ -93,6 +107,10 @@ const SYSTEM_PROMPT = [
   "Generate compact JSON with no unused fields and no explanatory prose.",
   "If the requested diagram is large, simplify the diagram instead of returning incomplete JSON.",
   "Prefer clear readable diagrams with labeled boxes, arrows, and spatial separation.",
+  "When a reference image is attached, recreate its useful structure as editable elements; do not embed the image itself.",
+  "Treat readable labels in a reference image as source-of-truth text: preserve them verbatim where possible. Never leave a visible box, ellipse, or node unlabeled; use a concise label from the user's request when text is unclear.",
+  "Do not redraw, imitate, or invent company logos. Unless an actual logo asset is supplied, use a clean neutral brand badge with the company name instead.",
+  `Only when a node is an exact match for one of these DesignBuddy components, use a rectangle or ellipse placeholder with customData.designbuddyComponentId set to its ID and do not add a separate label: ${TWILIO_COMPONENTS.map(({ id, label }) => `${id} (${label})`).join(", ")}. Never tag or replace generic systems, external services, users, backends, agents, LLMs, business logic, tools, datastores, or grouped containers.`,
   "Keep element counts modest unless the user explicitly asks for a large diagram.",
 ].join("\n");
 
@@ -106,10 +124,13 @@ const PROMPT_ANALYSIS_SYSTEM_PROMPT = [
   'expectedOutputTokenRange: a rough 5k or 10k band such as "5k-10k", "10k-20k", "40k-60k", or "60k-80k".',
   'completionRisk: "low", "medium", or "high".',
   "reason: one concise sentence.",
-  "optimizedPrompt: a clear editable prompt for the final diagram generation.",
+  "optimizedPrompt: a clear editable execution brief for the final diagram generation.",
   "Prefer Mermaid for broad catalogues, many components, or dense relationship maps.",
   "Prefer Excalidraw when spatial grouping, visual architecture blocks, or presentation polish matters more than completeness.",
   "Optimize prompts by limiting node count, grouping related ideas, keeping labels short, and preserving the user's intent.",
+  "When a reference image is attached, account for its structure and labels in the optimized prompt.",
+  "For a reference image, organize optimizedPrompt under these exact headings: Mode, Preserve, Change, Required flows, Constraints.",
+  "Mode must say whether the request recreates, extends, or modifies the reference. Preserve must name existing nodes, labels, relationships, and layout to keep. Change must list only the requested delta. Required flows must state every source-to-destination path, including return paths. Constraints must prevent unrelated routes from being repurposed and identify any uncertain or unreadable label as an assumption.",
 ].join("\n");
 
 const MODIFY_SYSTEM_PROMPT = [
@@ -132,6 +153,22 @@ const MERMAID_SYSTEM_PROMPT = [
   "Prefer labeled arrows over extra explanatory nodes.",
 ].join("\n");
 
+const CLEAN_ARCHITECTURE_SYSTEM_PROMPT = [
+  "You generate a compact JSON architecture specification for DesignBuddy's Clean architecture mode.",
+  "Return only one valid JSON object. Do not wrap it in Markdown.",
+  'Use exactly this shape: {"nodes":[{"id":"...","label":"...","role":"...","componentId":"...","subtitle":"..."}],"edges":[{"from":"...","to":"...","label":"...","role":"..."}]}.',
+  "Nodes: 6 to 12. Edges: 14 maximum. Use one node per system or product; never create invisible grouping or label-only nodes.",
+  'Node roles: "external" for users/callers; "channel" for Twilio communication products; "integration" for webhook/backend hops; "agent" for agent infrastructure; "support" for LLM, business logic, and tools; "context" for Flex or data/context systems; "service" for other systems.',
+  'Edge roles: "primary" for the forward request path; "return" for the response/backward path; "association" for a visual ownership/association with no arrowhead; "dependency" for internal supporting relationships.',
+  "Twilio is a visual ownership badge, not a traffic hop. Twilio may only use an association edge to a channel product; never use Twilio as the source or destination of a primary, return, or dependency edge.",
+  "For messaging, use this semantic sequence when applicable: User -> Prog. Messaging; Prog. Messaging -> webhook/backend; webhook/backend -> Agent infrastructure; Agent infrastructure -> Prog. Messaging as a return; Prog. Messaging -> User as a return. Do not send a response only to the webhook/backend.",
+  "For voice, keep the main path Prog. Voice -> Agent infrastructure as primary, the updateCall path Agent infrastructure -> Prog. Voice as return, and Prog. Voice -> Flex as primary/context.",
+  "Use componentId only with exact DesignBuddy component labels. Supported components: Twilio, Prog. Voice, Prog. Messaging, SMS, WhatsApp, Email API, Recording, Flex, Conversation Relay, Twilio Agent Connect, Conversation Intelligence, Twilio Orchestrator, Memory, Functions, Assets, Studio, TaskRouter, Verify, Lookup, Segment CDP, Connections, Profiles, Engage, Knowledge, Event Streams, Sync, Interconnect, Proxy, 3rd Party API.",
+  "If a library component needs a qualifier, keep its exact component label and put the qualifier in subtitle; for example label Flex, componentId flex, subtitle Salesforce SCV.",
+  "Keep generic systems (backends, agents, LLMs, business logic, tools, datastores) as ordinary labeled nodes.",
+  "For a reference image, preserve meaningful systems and flows, but prioritize a clean readable architecture rather than copying coordinates or decorative details.",
+].join("\n");
+
 const MERMAID_MODIFY_SYSTEM_PROMPT = [
   "You modify Mermaid flowchart source for DesignBuddy.",
   "Return only the full updated Mermaid text with no Markdown fence.",
@@ -142,6 +179,58 @@ const MERMAID_MODIFY_SYSTEM_PROMPT = [
 
 function getErrorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function userContent(text: string, referenceImage?: AiReferenceImage | null) {
+  return [
+    { type: "input_text", text },
+    ...(referenceImage
+      ? [{ type: "input_image", image_url: referenceImage.dataUrl, detail: "high" }]
+      : []),
+  ];
+}
+
+function logAiRequest({
+  operation,
+  status,
+  model,
+  quality,
+  timeoutMs,
+  startedAt,
+  prompt,
+  referenceImage,
+  responseText,
+  sceneSummary,
+  error,
+}: {
+  operation: AiDiagnosticOperation;
+  status: "success" | "error";
+  model: string;
+  quality: AiQuality;
+  timeoutMs: number;
+  startedAt: number;
+  prompt: string;
+  referenceImage?: AiReferenceImage | null;
+  responseText?: string;
+  sceneSummary?: { elementCount: number; arrowCount: number; componentIds: string[] };
+  error?: unknown;
+}) {
+  recordAiDiagnostic({
+    operation,
+    status,
+    model,
+    quality,
+    timeoutMs,
+    durationMs: Date.now() - startedAt,
+    promptLength: prompt.length,
+    referenceImage: referenceImage
+      ? { name: referenceImage.name, mimeType: referenceImage.mimeType, size: referenceImage.size }
+      : undefined,
+    responseLength: responseText?.length,
+    sceneSummary,
+    rawResponse: responseText,
+    error: error ? getErrorMessage(error).slice(0, 500) : undefined,
+  });
 }
 
 function formatRequestError(error: unknown, apiBaseUrl?: string) {
@@ -394,11 +483,14 @@ export async function generateExcalidrawScene({
   quality,
   outputBudget,
   customMaxOutputTokens,
+  referenceImage,
+  diagnosticOperation = "generate-excalidraw",
   prompt,
   systemPrompt = SYSTEM_PROMPT,
   signal,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: GenerateExcalidrawSceneInput): Promise<ExcalidrawScene> {
+  const startedAt = Date.now();
   const controller = new AbortController();
   let abortReason: "cancelled" | "timeout" | null = null;
   const unlinkAbortSignals = linkAbortSignals(controller, signal, () => {
@@ -437,7 +529,7 @@ export async function generateExcalidrawScene({
           },
           {
             role: "user",
-            content: [{ type: "input_text", text: prompt }],
+            content: userContent(prompt, referenceImage),
           },
         ],
       }),
@@ -485,8 +577,33 @@ export async function generateExcalidrawScene({
       throw new Error("OpenAI did not return a valid Excalidraw scene.");
     }
 
-    return prepareSceneForStorage(scene);
+    const preparedScene = prepareSceneForStorage({
+      ...scene,
+      elements: applyTwilioComponentTemplates(scene.elements),
+    });
+    const componentIds = preparedScene.elements.flatMap((element) => {
+      if (!element || typeof element !== "object") return [];
+      const customData = (element as Record<string, unknown>).customData;
+      const id = customData && typeof customData === "object"
+        ? (customData as Record<string, unknown>).designbuddyComponentId
+        : undefined;
+      return typeof id === "string" ? [id] : [];
+    });
+    logAiRequest({
+      operation: diagnosticOperation, status: "success", model, quality,
+      timeoutMs, startedAt, prompt, referenceImage, responseText,
+      sceneSummary: {
+        elementCount: preparedScene.elements.length,
+        arrowCount: preparedScene.elements.filter((element) => element && typeof element === "object" && (element as Record<string, unknown>).type === "arrow").length,
+        componentIds: [...new Set(componentIds)],
+      },
+    });
+    return preparedScene;
   } catch (error) {
+    logAiRequest({
+      operation: diagnosticOperation, status: "error", model, quality,
+      timeoutMs, startedAt, prompt, referenceImage, error,
+    });
     if (isAbortError(error)) {
       throw new Error(
         abortReason === "timeout"
@@ -524,6 +641,7 @@ export function modifyExcalidrawScene({
     signal,
     timeoutMs,
     systemPrompt: MODIFY_SYSTEM_PROMPT,
+    diagnosticOperation: "modify-excalidraw",
     prompt: [
       "Modify the existing scene using this instruction:",
       instruction,
@@ -545,6 +663,8 @@ async function callOpenAiForText({
   reasoningEffort = QUALITY_TO_REASONING_EFFORT[quality],
   signal,
   timeoutMs = DEFAULT_TIMEOUT_MS,
+  referenceImage,
+  diagnosticOperation,
 }: {
   apiKey: string;
   apiBaseUrl?: string;
@@ -556,7 +676,10 @@ async function callOpenAiForText({
   reasoningEffort?: string;
   signal?: AbortSignal;
   timeoutMs?: number;
+  referenceImage?: AiReferenceImage | null;
+  diagnosticOperation?: AiDiagnosticOperation;
 }) {
+  const startedAt = Date.now();
   const controller = new AbortController();
   let abortReason: "cancelled" | "timeout" | null = null;
   const unlinkAbortSignals = linkAbortSignals(controller, signal, () => {
@@ -591,7 +714,7 @@ async function callOpenAiForText({
           },
           {
             role: "user",
-            content: [{ type: "input_text", text: prompt }],
+            content: userContent(prompt, referenceImage),
           },
         ],
       }),
@@ -629,8 +752,20 @@ async function callOpenAiForText({
       throw new Error("OpenAI did not return text.");
     }
 
+    if (diagnosticOperation) {
+      logAiRequest({
+        operation: diagnosticOperation, status: "success", model, quality,
+        timeoutMs, startedAt, prompt, referenceImage, responseText,
+      });
+    }
     return responseText;
   } catch (error) {
+    if (diagnosticOperation) {
+      logAiRequest({
+        operation: diagnosticOperation, status: "error", model, quality,
+        timeoutMs, startedAt, prompt, referenceImage, error,
+      });
+    }
     if (isAbortError(error)) {
       throw new Error(
         abortReason === "timeout"
@@ -652,6 +787,7 @@ export async function analyzeDiagramPrompt({
   model,
   description,
   preferredKind,
+  referenceImage,
   signal,
   timeoutMs,
 }: AnalyzeDiagramPromptInput): Promise<DiagramPromptAnalysis> {
@@ -668,13 +804,15 @@ export async function analyzeDiagramPrompt({
     apiKey,
     apiBaseUrl,
     model,
-    quality: "draft",
+    quality: referenceImage ? "balanced" : "draft",
     signal,
     timeoutMs,
     systemPrompt: PROMPT_ANALYSIS_SYSTEM_PROMPT,
     prompt,
-    maxOutputTokens: 1_500,
-    reasoningEffort: "low",
+    maxOutputTokens: referenceImage ? 3_000 : 1_500,
+    reasoningEffort: referenceImage ? "medium" : "low",
+    referenceImage,
+    diagnosticOperation: "analyze-prompt",
   });
 
   return parsePromptAnalysis(responseText);
@@ -686,6 +824,7 @@ export async function generateMermaidFlowchart({
   model,
   quality,
   description,
+  referenceImage,
   signal,
   timeoutMs,
 }: GenerateMermaidFlowchartInput) {
@@ -700,6 +839,8 @@ export async function generateMermaidFlowchart({
     prompt: description,
     maxOutputTokens: getMermaidMaxOutputTokens(quality),
     reasoningEffort: "low",
+    referenceImage,
+    diagnosticOperation: "generate-mermaid",
   });
   const source = cleanMermaidSource(responseText);
   const validationError = validateMermaidSource(source);
@@ -709,6 +850,35 @@ export async function generateMermaidFlowchart({
   }
 
   return `${source}\n`;
+}
+
+export async function generateCleanArchitectureScene({
+  apiKey,
+  apiBaseUrl,
+  model,
+  quality,
+  description,
+  referenceImage,
+  signal,
+  timeoutMs,
+}: GenerateCleanArchitectureInput): Promise<ExcalidrawScene> {
+  const responseText = await callOpenAiForText({
+    apiKey,
+    apiBaseUrl,
+    model,
+    quality,
+    signal,
+    timeoutMs,
+    systemPrompt: CLEAN_ARCHITECTURE_SYSTEM_PROMPT,
+    prompt: description,
+    maxOutputTokens: getMermaidMaxOutputTokens(quality),
+    reasoningEffort: "low",
+    referenceImage,
+    diagnosticOperation: "generate-clean-architecture",
+  });
+  return cleanArchitectureSpecToExcalidrawScene(
+    normalizeCleanArchitectureSpec(parseCleanArchitectureSpec(extractJsonObject(responseText))),
+  );
 }
 
 export async function modifyMermaidFlowchart({
@@ -738,6 +908,7 @@ export async function modifyMermaidFlowchart({
     ].join("\n"),
     maxOutputTokens: getMermaidMaxOutputTokens(quality),
     reasoningEffort: "low",
+    diagnosticOperation: "modify-mermaid",
   });
   const nextSource = cleanMermaidSource(responseText);
   const validationError = validateMermaidSource(nextSource);

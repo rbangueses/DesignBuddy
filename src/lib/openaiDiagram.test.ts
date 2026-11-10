@@ -61,6 +61,7 @@ describe("openaiDiagram", () => {
     expect(requestBody.max_output_tokens).toBe(12_000);
     expect(JSON.stringify(requestBody)).toContain("A login flow");
     expect(JSON.stringify(requestBody)).toContain("compact");
+    expect(JSON.stringify(requestBody)).toContain("Do not redraw, imitate, or invent company logos");
   });
 
   it("uses a configured OpenAI-compatible API base URL", async () => {
@@ -103,6 +104,39 @@ describe("openaiDiagram", () => {
     ) as { max_output_tokens: number };
 
     expect(requestBody.max_output_tokens).toBe(75_000);
+  });
+
+  it("sends a reference image with Excalidraw generation", async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({ output_text: JSON.stringify(generatedScene) }),
+    } as Response);
+
+    await generateExcalidrawScene({
+      apiKey: "sk-test",
+      model: "gpt-5.6-luna",
+      quality: "balanced",
+      prompt: "Recreate this flow.",
+      referenceImage: {
+        dataUrl: "data:image/png;base64,aW1hZ2U=",
+        name: "flow.png",
+        mimeType: "image/png",
+        size: 5,
+      },
+    });
+
+    const requestBody = JSON.parse(
+      String(vi.mocked(fetch).mock.calls[0]?.[1]?.body),
+    ) as {
+      input: Array<{ role: string; content: Array<Record<string, string>> }>;
+    };
+    const userInput = requestBody.input.find((item) => item.role === "user");
+
+    expect(userInput?.content).toContainEqual({
+      type: "input_image",
+      image_url: "data:image/png;base64,aW1hZ2U=",
+      detail: "high",
+    });
   });
 
   it("analyzes a diagram prompt and returns generation recommendations", async () => {

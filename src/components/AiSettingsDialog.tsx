@@ -9,6 +9,11 @@ import {
   type AiQuality,
   type AiSettings,
 } from "../lib/aiSettings";
+import {
+  clearAiDiagnostics,
+  downloadAiDiagnostics,
+  getAiDiagnosticCount,
+} from "../lib/aiDiagnostics";
 import type { BackupSettings } from "../lib/backupSettings";
 import { useDialogEscape } from "./useDialogEscape";
 import packageJson from "../../package.json";
@@ -43,6 +48,11 @@ export function AiSettingsDialog({
   const [customModel, setCustomModel] = useState(settings.customModel);
   const [quality, setQuality] = useState<AiQuality>(settings.quality);
   const [enableMermaid, setEnableMermaid] = useState(settings.enableMermaid);
+  const [enableDiagnostics, setEnableDiagnostics] = useState(settings.enableDiagnostics);
+  const [includeDiagnosticRawResponses, setIncludeDiagnosticRawResponses] = useState(
+    settings.includeDiagnosticRawResponses,
+  );
+  const [diagnosticCount, setDiagnosticCount] = useState(getAiDiagnosticCount);
   const [backupFolderPath, setBackupFolderPath] = useState(
     backupSettings.backupFolderPath,
   );
@@ -68,6 +78,9 @@ export function AiSettingsDialog({
       customModel: customModel.trim(),
       quality,
       enableMermaid,
+      enableDiagnostics,
+      includeDiagnosticRawResponses:
+        enableDiagnostics && includeDiagnosticRawResponses,
     };
 
     if (!resolveAiModel(nextSettings)) {
@@ -202,6 +215,52 @@ export function AiSettingsDialog({
             />
             Enable Mermaid diagrams
           </label>
+
+          <section className="settings-section ai-diagnostics-section">
+            <h3>AI diagnostics</h3>
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                checked={enableDiagnostics}
+                onChange={(event) => setEnableDiagnostics(event.target.checked)}
+              />
+              Keep local AI diagnostics
+            </label>
+            <p className="settings-help">
+              Keeps the latest 20 generation summaries on this Mac. It never stores your API key or reference-image data.
+            </p>
+            <label className="checkbox-field">
+              <input
+                type="checkbox"
+                checked={includeDiagnosticRawResponses}
+                disabled={!enableDiagnostics}
+                onChange={(event) => setIncludeDiagnosticRawResponses(event.target.checked)}
+              />
+              Include raw AI responses in exports
+            </label>
+            <p className="settings-help">
+              Raw responses can contain diagram labels and other sensitive content.
+            </p>
+            <div className="diagnostics-actions">
+              <button
+                type="button"
+                onClick={downloadAiDiagnostics}
+                disabled={diagnosticCount === 0}
+              >
+                Download diagnostics ({diagnosticCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearAiDiagnostics();
+                  setDiagnosticCount(0);
+                }}
+                disabled={diagnosticCount === 0}
+              >
+                Clear diagnostics
+              </button>
+            </div>
+          </section>
 
           <section className="settings-section">
             <h3>Backup</h3>
