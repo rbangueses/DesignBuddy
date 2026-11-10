@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-10 — 0.3.4
+
+- Fixed Clean Architecture generation failing when an AI model incorrectly uses the decorative Twilio ownership badge as a traffic endpoint. DesignBuddy now safely treats that link as an ownership association and continues generating the diagram.
+
 ## 2026-11-10 — 0.3.3
 
 - Added optional reference-image input for AI diagram creation and prompt analysis. DesignBuddy sends the image only for the requested AI action and creates editable diagram elements rather than embedding the source image.

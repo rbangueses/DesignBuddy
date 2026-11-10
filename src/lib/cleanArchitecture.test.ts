@@ -278,13 +278,17 @@ describe("clean architecture rendering", () => {
     }))).toThrow("too large or incomplete");
   });
 
-  it("rejects traffic flows that incorrectly use the Twilio ownership badge", () => {
-    expect(() => parseCleanArchitectureSpec(JSON.stringify({
+  it("converts traffic flows that incorrectly use the Twilio ownership badge into associations", () => {
+    const spec = parseCleanArchitectureSpec(JSON.stringify({
       nodes: [
         { id: "user", label: "User", role: "external" },
         { id: "twilio", label: "Twilio", role: "channel", componentId: "twilio" },
       ],
-      edges: [{ from: "user", to: "twilio", role: "primary" }],
-    }))).toThrow("Twilio badge can only use association edges");
+      edges: [{ from: "user", to: "twilio", label: "call", role: "primary" }],
+    }));
+
+    expect(spec.edges).toEqual([
+      { from: "user", to: "twilio", label: undefined, role: "association" },
+    ]);
   });
 });

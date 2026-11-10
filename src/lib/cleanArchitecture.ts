@@ -233,9 +233,12 @@ export function parseCleanArchitectureSpec(text: string): CleanArchitectureSpec 
       throw new Error(`Invalid architecture edge ${index + 1}.`);
     }
     if (twilioNodeIds.has(from) || twilioNodeIds.has(to)) {
-      if (role !== "association") {
-        throw new Error("The Twilio badge can only use association edges, not traffic flows.");
-      }
+      // The Twilio circle is an ownership badge, not a traffic endpoint. AI
+      // models occasionally use it as one despite the generation contract.
+      // Recover safely by retaining the visual ownership relationship and
+      // allowing the remaining channel flows to render, rather than failing
+      // the entire Clean Architecture request.
+      return { from, to, label: undefined, role: "association" as const };
     }
     return { from, to, label, role };
   });
