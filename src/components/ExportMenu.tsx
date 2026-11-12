@@ -12,6 +12,7 @@ type ExportMenuItem = {
 type ExportMenuProps = {
   disabled?: boolean;
   items: ExportMenuItem[];
+  tooltip?: string;
 };
 
 function ExportMenuIcon({ icon }: { icon: ExportMenuItem["icon"] }) {
@@ -22,7 +23,7 @@ function ExportMenuIcon({ icon }: { icon: ExportMenuItem["icon"] }) {
   return <Download size={16} />;
 }
 
-export function ExportMenu({ disabled = false, items }: ExportMenuProps) {
+export function ExportMenu({ disabled = false, items, tooltip }: ExportMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
@@ -57,7 +58,11 @@ export function ExportMenu({ disabled = false, items }: ExportMenuProps) {
   }, [isOpen]);
 
   return (
-    <div className="export-menu-wrap" ref={menuRef}>
+    <div
+      className="export-menu-wrap editor-header-tooltip"
+      data-tooltip={tooltip}
+      ref={menuRef}
+    >
       <button
         type="button"
         className="export-menu-trigger"

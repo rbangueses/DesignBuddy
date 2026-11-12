@@ -1,11 +1,16 @@
 import "@excalidraw/excalidraw/index.css";
 import { Excalidraw } from "@excalidraw/excalidraw";
+import type {
+  ExcalidrawImperativeAPI,
+  PointerDownState,
+} from "@excalidraw/excalidraw/types";
 import { save } from "@tauri-apps/plugin-dialog";
 import {
   ArrowLeft,
   Bot,
   Copy,
   FolderInput,
+  MousePointer2,
   Pencil,
   Save,
   Shapes,
@@ -14,6 +19,12 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutosave } from "../hooks/useAutosave";
 import { loadAiSettings, type AiSettings } from "../lib/aiSettings";
+import {
+  loadBoxSelectionSettings,
+  overlapsBoxSelection,
+  saveBoxSelectionSettings,
+  type BoxSelectionMode,
+} from "../lib/boxSelection";
 import { designApi } from "../lib/designApi";
 import {
   prepareSceneForExcalidraw,
@@ -200,6 +211,9 @@ export function EditorView({
     useState<TwilioShortcutSettings>(() => loadTwilioShortcutSettings());
   const [twilioComponentSettings, setTwilioComponentSettings] =
     useState<TwilioComponentSettings>(() => loadTwilioComponentSettings());
+  const [boxSelectionMode, setBoxSelectionMode] = useState<BoxSelectionMode>(
+    () => loadBoxSelectionSettings().mode,
+  );
   const [isCustomizingTwilioShortcuts, setIsCustomizingTwilioShortcuts] =
     useState(false);
   const [twilioShortcutError, setTwilioShortcutError] = useState<string | null>(
@@ -209,6 +223,7 @@ export function EditorView({
   const savedNotesRef = useRef("");
   const latestNotesRef = useRef("");
   const canvasPointerRef = useRef<CanvasPointerPosition | null>(null);
+  const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
   const autosave = useAutosave({
@@ -399,6 +414,56 @@ export function EditorView({
       setAutosaveScene(nextScene);
     },
     [],
+  );
+
+  const handleBoxSelectionModeChange = useCallback((mode: BoxSelectionMode) => {
+    setBoxSelectionMode(mode);
+    saveBoxSelectionSettings({ mode });
+  }, []);
+
+  const handleExcalidrawApi = useCallback((api: ExcalidrawImperativeAPI) => {
+    excalidrawApiRef.current = api;
+  }, []);
+
+  const handleExcalidrawPointerUp = useCallback(
+    (
+      activeTool: { type: string },
+      pointerDownState: PointerDownState,
+    ) => {
+      if (
+        boxSelectionMode !== "overlap" ||
+        activeTool.type !== "selection" ||
+        !pointerDownState.boxSelection.hasOccurred
+      ) {
+        return;
+      }
+
+      // Excalidraw completes its native wrap selection in the same pointer-up
+      // event. Run after it, then add every editable element the marquee touched.
+      window.setTimeout(() => {
+        const api = excalidrawApiRef.current;
+        if (!api) return;
+
+        const selectedElementIds = {
+          ...api.getAppState().selectedElementIds,
+        };
+        const selection = {
+          x1: pointerDownState.origin.x,
+          y1: pointerDownState.origin.y,
+          x2: pointerDownState.lastCoords.x,
+          y2: pointerDownState.lastCoords.y,
+        };
+
+        for (const element of api.getSceneElements()) {
+          if (overlapsBoxSelection(element, selection)) {
+            selectedElementIds[element.id] = true;
+          }
+        }
+
+        api.updateScene({ appState: { selectedElementIds } });
+      }, 0);
+    },
+    [boxSelectionMode],
   );
 
   const handleRename = useCallback(
@@ -668,10 +733,10 @@ export function EditorView({
       <header className="editor-header">
         <button
           type="button"
-          className="icon-button"
+          className="icon-button editor-header-tooltip"
           onClick={() => void handleBack()}
           aria-label="Back to library"
-          title="Back to library"
+          data-tooltip="Return to the library."
           disabled={isBusy}
         >
           <ArrowLeft size={18} />
@@ -683,10 +748,41 @@ export function EditorView({
         <div className="save-cluster">
           <button
             type="button"
-            className="icon-button"
+            className={`selection-mode-toggle ${boxSelectionMode === "overlap" ? "is-overlap" : "is-wrap"}`}
+            onClick={() =>
+              handleBoxSelectionModeChange(
+                boxSelectionMode === "contain" ? "overlap" : "contain",
+              )
+            }
+            aria-label={
+              boxSelectionMode === "contain"
+                ? "Selection mode: wrap"
+                : "Selection mode: overlap"
+            }
+            data-tooltip={
+              boxSelectionMode === "contain"
+                ? "Wrap: select only elements fully inside the box. Click to select elements the box touches."
+                : "Overlap: select elements the box touches. Click to require elements fully inside the box."
+            }
+            aria-pressed={boxSelectionMode === "overlap"}
+            disabled={isBusy || !initialData}
+          >
+            <MousePointer2 size={16} />
+            <span>
+              <span className="selection-mode-label">Selection</span>
+              <strong>{boxSelectionMode === "overlap" ? "Overlap" : "Wrap"}</strong>
+            </span>
+          </button>
+          <button
+            type="button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setIsNotesOpen((isOpen) => !isOpen)}
             aria-label={isNotesOpen ? "Hide diagram notes" : "Show diagram notes"}
-            title={isNotesOpen ? "Hide notes (N)" : "Show notes (N)"}
+            data-tooltip={
+              isNotesOpen
+                ? "Hide notes. Shortcut: N."
+                : "Show notes for assumptions, questions, and decisions. Shortcut: N."
+            }
             aria-pressed={isNotesOpen}
             disabled={isBusy || !initialData}
           >
@@ -694,56 +790,57 @@ export function EditorView({
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("twilio-components")}
             aria-label="Twilio components"
-            title="Twilio components"
+            data-tooltip="Add a Twilio component to the canvas."
             disabled={isBusy || !initialData}
           >
             <Shapes size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("ai-modify")}
             aria-label="AI modify"
-            title="AI modify"
+            data-tooltip="Ask AI to update this diagram."
             disabled={isBusy || !initialData}
           >
             <Bot size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("rename")}
             aria-label="Rename design"
-            title="Rename design"
+            data-tooltip="Rename this diagram."
             disabled={isBusy || !initialData}
           >
             <Pencil size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("duplicate")}
             aria-label="Duplicate design"
-            title="Duplicate design"
+            data-tooltip="Copy this diagram to this or another project."
             disabled={isBusy || !initialData}
           >
             <Copy size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("move")}
             aria-label="Move design"
-            title="Move design"
+            data-tooltip="Move this diagram to another project."
             disabled={isBusy || !initialData}
           >
             <FolderInput size={16} />
           </button>
           <ExportMenu
             disabled={isBusy || !initialData}
+            tooltip="Export this diagram as an Excalidraw or draw.io file."
             items={[
               {
                 id: "excalidraw",
@@ -763,8 +860,9 @@ export function EditorView({
           <span className={`save-status ${autosave.status}`}>{autosave.status}</span>
           <button
             type="button"
-            className="save-button"
+            className="save-button editor-header-tooltip"
             onClick={() => void autosave.saveNow()}
+            data-tooltip="Save changes now."
             disabled={isBusy || autosave.status === "saving"}
           >
             <Save size={16} />
@@ -788,6 +886,8 @@ export function EditorView({
             key={`${sceneKey}/${sceneRevision}`}
             initialData={initialData as never}
             onChange={handleSceneChange as never}
+            excalidrawAPI={handleExcalidrawApi}
+            onPointerUp={handleExcalidrawPointerUp}
             aiEnabled={false}
           />
           {isNotesOpen ? (

@@ -68,6 +68,7 @@ vi.mock("lucide-react", () => ({
   ChevronDown: () => <span aria-hidden="true">chevron-down</span>,
   Copy: () => <span aria-hidden="true">copy</span>,
   FolderInput: () => <span aria-hidden="true">move</span>,
+  MousePointer2: () => <span aria-hidden="true">selection</span>,
   Download: () => <span aria-hidden="true">download</span>,
   FileCode2: () => <span aria-hidden="true">file-code</span>,
   Pencil: () => <span aria-hidden="true">pencil</span>,

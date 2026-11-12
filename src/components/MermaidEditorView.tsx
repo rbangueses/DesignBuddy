@@ -207,10 +207,10 @@ export function MermaidEditorView({
       <header className="editor-header">
         <button
           type="button"
-          className="icon-button"
+          className="icon-button editor-header-tooltip"
           onClick={() => void handleBack()}
           aria-label="Back to library"
-          title="Back to library"
+          data-tooltip="Return to the library."
           disabled={isBusy}
         >
           <ArrowLeft size={18} />
@@ -222,46 +222,47 @@ export function MermaidEditorView({
         <div className="save-cluster">
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("ai-modify")}
             aria-label="AI modify"
-            title="AI modify"
+            data-tooltip="Ask AI to update this diagram."
             disabled={isBusy}
           >
             <Bot size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("rename")}
             aria-label="Rename design"
-            title="Rename design"
+            data-tooltip="Rename this diagram."
             disabled={isBusy}
           >
             <Pencil size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("duplicate")}
             aria-label="Duplicate design"
-            title="Duplicate design"
+            data-tooltip="Copy this diagram to this or another project."
             disabled={isBusy}
           >
             <Copy size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("move")}
             aria-label="Move design"
-            title="Move design"
+            data-tooltip="Move this diagram to another project."
             disabled={isBusy}
           >
             <FolderInput size={16} />
           </button>
           <ExportMenu
             disabled={isBusy}
+            tooltip="Export this Mermaid source file."
             items={[
               {
                 id: "mermaid",
@@ -273,8 +274,9 @@ export function MermaidEditorView({
           />
           <button
             type="button"
-            className="convert-button"
+            className="convert-button editor-header-tooltip"
             onClick={() => void handleConvert()}
+            data-tooltip="Create an editable Excalidraw version of this diagram."
             disabled={isBusy}
           >
             <Shuffle size={16} />
@@ -283,8 +285,9 @@ export function MermaidEditorView({
           <span className={`save-status ${saveStatus}`}>{saveStatus}</span>
           <button
             type="button"
-            className="save-button"
+            className="save-button editor-header-tooltip"
             onClick={() => void saveNow()}
+            data-tooltip="Save changes now."
             disabled={isBusy}
           >
             <Save size={16} />

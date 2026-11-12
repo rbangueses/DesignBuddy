@@ -234,10 +234,10 @@ export function NoteEditorView({
       <header className="editor-header">
         <button
           type="button"
-          className="icon-button"
+          className="icon-button editor-header-tooltip"
           onClick={() => void handleBack()}
           aria-label="Back to library"
-          title="Back to library"
+          data-tooltip="Return to the library."
           disabled={isBusy}
         >
           <ArrowLeft size={18} />
@@ -249,36 +249,37 @@ export function NoteEditorView({
         <div className="save-cluster">
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("rename")}
             aria-label="Rename note"
-            title="Rename note"
+            data-tooltip="Rename this note."
             disabled={isBusy}
           >
             <Pencil size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("duplicate")}
             aria-label="Duplicate note"
-            title="Duplicate note"
+            data-tooltip="Copy this note to this or another project."
             disabled={isBusy}
           >
             <Copy size={16} />
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button editor-header-tooltip"
             onClick={() => setPendingAction("move")}
             aria-label="Move note"
-            title="Move note"
+            data-tooltip="Move this note to another project."
             disabled={isBusy}
           >
             <FolderInput size={16} />
           </button>
           <ExportMenu
             disabled={isBusy}
+            tooltip="Export this note as a DesignBuddy note file."
             items={[
               {
                 id: "designbuddy-note",
@@ -291,8 +292,9 @@ export function NoteEditorView({
           <span className={`save-status ${saveStatus}`}>{saveStatus}</span>
           <button
             type="button"
-            className="save-button"
+            className="save-button editor-header-tooltip"
             onClick={() => void saveNow()}
+            data-tooltip="Save changes now."
             disabled={isBusy}
           >
             <Save size={16} />

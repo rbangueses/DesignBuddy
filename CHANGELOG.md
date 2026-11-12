@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-12 — 0.3.5
+
+- Added a persisted **Selection** mode to Excalidraw diagrams. Switch between the familiar **Wrap** marquee behaviour (select only fully enclosed elements) and **Overlap** (select any unlocked element the marquee touches).
+- Added a clear, labelled Selection control at the start of the diagram editor action bar, with an immediate explanation of the active mode.
+- Replaced delayed browser-title hints in diagram, Mermaid, and note editor headers with consistent immediate tooltips that explain what Notes, AI, component insertion, copy, move, export, conversion, and save actions do.
+
 ## 2026-11-10 — 0.3.4
 
 - Fixed Clean Architecture generation failing when an AI model incorrectly uses the decorative Twilio ownership badge as a traffic endpoint. DesignBuddy now safely treats that link as an ownership association and continues generating the diagram.
