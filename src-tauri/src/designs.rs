@@ -847,7 +847,13 @@ pub fn write_design(
     drop(tmp_file);
 
     fs::rename(&tmp_path, &path)?;
-    fs::File::open(&path)?.sync_all()?;
+    // Windows requires write access for FlushFileBuffers (used by sync_all),
+    // unlike macOS where a read-only handle is accepted.
+    fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(&path)?
+        .sync_all()?;
 
     let saved = read_design(
         root,
