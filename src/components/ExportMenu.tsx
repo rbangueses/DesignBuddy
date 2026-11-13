@@ -59,7 +59,7 @@ export function ExportMenu({ disabled = false, items, tooltip }: ExportMenuProps
 
   return (
     <div
-      className="export-menu-wrap editor-header-tooltip"
+      className={`export-menu-wrap editor-header-tooltip${isOpen ? " is-open" : ""}`}
       data-tooltip={tooltip}
       ref={menuRef}
     >

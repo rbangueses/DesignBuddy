@@ -157,6 +157,7 @@ export function useAutosave({
       return;
     }
 
+    setStatus("saving");
     pendingTimeout.current = window.setTimeout(() => {
       pendingTimeout.current = null;
       void saveNow();

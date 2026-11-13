@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-11-13 — 0.3.10
+
+- Show **Saving…** as soon as a diagram edit is detected, then switch to **Saved** only after the verified autosave completes.
+- Moved diagram save feedback beside the project and diagram title, with a compact state dot that keeps the action strip focused on tools and Export.
+- Hide the Export tooltip while its menu is open so it cannot cover the first export option.
+
 ## 2026-11-13 — 0.3.9
 
 - Calmed diagram autosave feedback: the header keeps a fixed Saved/Saving status slot, no longer presents a false unsaved state while a diagram opens, and removes the redundant manual Save button.

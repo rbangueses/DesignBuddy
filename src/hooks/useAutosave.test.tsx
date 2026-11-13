@@ -67,7 +67,7 @@ describe("useAutosave", () => {
       },
     });
 
-    expect(result.current.status).toBe("saved");
+    expect(result.current.status).toBe("saving");
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(900);
@@ -115,7 +115,7 @@ describe("useAutosave", () => {
 
     rerender({ scene: updatedScene });
 
-    expect(result.current.status).toBe("saved");
+    expect(result.current.status).toBe("saving");
 
     await act(async () => {
       await result.current.saveNow();

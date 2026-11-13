@@ -789,6 +789,10 @@ export function EditorView({
           <span>{project}</span>
           <strong>{title}</strong>
         </div>
+        <span className={`save-status ${autosave.status}`} aria-live="polite">
+          <span className="save-status-dot" aria-hidden="true" />
+          {saveStatusLabel}
+        </span>
         <div className="save-cluster">
           <button
             type="button"
@@ -901,9 +905,6 @@ export function EditorView({
               },
             ]}
           />
-          <span className={`save-status ${autosave.status}`} aria-live="polite">
-            {saveStatusLabel}
-          </span>
         </div>
       </header>
       {autosave.status === "error" ? (
