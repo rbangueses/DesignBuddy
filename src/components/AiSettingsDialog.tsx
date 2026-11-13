@@ -31,6 +31,7 @@ type AiSettingsDialogProps = {
     fileCount: number;
   }>;
   onBackUpBeforeUpdate: (targetVersion: string) => Promise<AutomaticBackupResult>;
+  onRestartApp: () => Promise<void>;
   onRestoreFromBackup: () => void;
   onSave: (settings: AiSettings, backupSettings: BackupSettings) => void;
 };
@@ -72,6 +73,7 @@ export function AiSettingsDialog({
   onChooseBackupFolder,
   onBackUpNow,
   onBackUpBeforeUpdate,
+  onRestartApp,
   onRestoreFromBackup,
   onSave,
 }: AiSettingsDialogProps) {
@@ -261,9 +263,8 @@ export function AiSettingsDialog({
       replaceAvailableUpdate(null);
       setIsUpdateReviewOpen(false);
       setReviewedChangelog(null);
-      setUpdateStatus(
-        `Version ${update.version} is installed. Quit and reopen DesignBuddy to start using it.`,
-      );
+      setUpdateStatus(`Version ${update.version} is installed. Restarting DesignBuddy…`);
+      await onRestartApp();
     } catch (updateError) {
       setUpdateStatus(
         updateError instanceof Error

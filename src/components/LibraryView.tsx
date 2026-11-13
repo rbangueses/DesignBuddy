@@ -339,6 +339,7 @@ export function LibraryView({
           }}
           onBackUpNow={designApi.backupLibrary}
           onBackUpBeforeUpdate={designApi.backupBeforeUpdate}
+          onRestartApp={designApi.restartApp}
           onSave={(settings, nextBackupSettings) => {
             saveAiSettings(settings);
             saveBackupSettings(nextBackupSettings);

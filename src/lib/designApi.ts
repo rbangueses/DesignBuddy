@@ -90,6 +90,7 @@ export const designApi = {
     invoke<BackupResult>("backup_library", { targetPath }),
   backupBeforeUpdate: (targetVersion: string) =>
     invoke<AutomaticBackupResult>("backup_before_update", { targetVersion }),
+  restartApp: () => invoke<void>("restart_app"),
   scanBackup: (sourcePath: string) =>
     invoke<RestorePreview>("scan_backup", { sourcePath }),
   restoreBackup: (sourcePath: string, artifacts: RestoreArtifact[]) =>

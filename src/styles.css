@@ -541,13 +541,14 @@ textarea {
 }
 
 .update-install-button {
-  border-color: #0f766e;
-  background: #0f766e;
+  border-color: #1a73e8;
+  background: #1a73e8;
   color: #ffffff;
 }
 
 .update-install-button:hover:not(:disabled) {
-  background: #0b5e57;
+  border-color: #1765cc;
+  background: #1765cc;
 }
 
 .update-status {

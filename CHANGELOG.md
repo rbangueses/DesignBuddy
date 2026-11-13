@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-13 — 0.3.8
+
+- Made the update action use the same blue primary-button treatment as the rest of DesignBuddy.
+- After a signed update is installed successfully, DesignBuddy now restarts automatically so the new version opens without requiring a manual quit and reopen.
+
 ## 2026-11-13 — 0.3.7
 
 - Hardened local saves for diagrams, Mermaid files, and notes. DesignBuddy now writes through a temporary file, flushes it to disk, verifies the saved content can be read back correctly, and only then reports success.

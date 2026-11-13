@@ -286,6 +286,11 @@ fn restore_backup(
         .map_err(|error| error.to_string())
 }
 
+#[tauri::command]
+fn restart_app(app: tauri::AppHandle) {
+    std::thread::spawn(move || app.restart());
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -314,7 +319,8 @@ pub fn run() {
             backup_library,
             backup_before_update,
             scan_backup,
-            restore_backup
+            restore_backup,
+            restart_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running DesignBuddy");
