@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import type {
   BackupResult,
+  AutomaticBackupResult,
   RestoreArtifact,
   RestorePreview,
   RestoreResult,
@@ -87,6 +88,8 @@ export const designApi = {
     invoke<void>("export_drawio", { targetPath, content }),
   backupLibrary: (targetPath: string) =>
     invoke<BackupResult>("backup_library", { targetPath }),
+  backupBeforeUpdate: (targetVersion: string) =>
+    invoke<AutomaticBackupResult>("backup_before_update", { targetVersion }),
   scanBackup: (sourcePath: string) =>
     invoke<RestorePreview>("scan_backup", { sourcePath }),
   restoreBackup: (sourcePath: string, artifacts: RestoreArtifact[]) =>

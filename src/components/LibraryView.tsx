@@ -338,6 +338,7 @@ export function LibraryView({
             void handleChooseRestoreFolder().catch(() => undefined);
           }}
           onBackUpNow={designApi.backupLibrary}
+          onBackUpBeforeUpdate={designApi.backupBeforeUpdate}
           onSave={(settings, nextBackupSettings) => {
             saveAiSettings(settings);
             saveBackupSettings(nextBackupSettings);

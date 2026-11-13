@@ -11,6 +11,10 @@ export type BackupResult = {
   fileCount: number;
 };
 
+export type AutomaticBackupResult = BackupResult & {
+  backupPath: string;
+};
+
 export type RestoreConflictResolution = "copy" | "replace" | "skip";
 
 export type RestoreArtifactPreview = {

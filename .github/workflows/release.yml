@@ -1,0 +1,116 @@
+name: Publish signed macOS release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build signed macOS updater (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-13
+            target: darwin-x86_64
+          - runner: macos-14
+            target: darwin-aarch64
+
+    steps:
+      - name: Check out the tagged release
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: |
+          npm run test:run
+          cargo test --manifest-path src-tauri/Cargo.toml
+
+      - name: Build signed updater artifact
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: npm exec tauri build -- --bundles app --config '{"bundle":{"createUpdaterArtifacts":true}}'
+
+      - name: Prepare updater artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          archive="$(find src-tauri/target/release/bundle -type f -name '*.app.tar.gz' | head -n 1)"
+          test -n "$archive"
+          test -f "$archive.sig"
+          asset="DesignBuddy_${version}_${{ matrix.target }}.app.tar.gz"
+          cp "$archive" "$asset"
+          cp "$archive.sig" "$asset.sig"
+
+      - name: Upload signed updater artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: updater-${{ matrix.target }}
+          if-no-files-found: error
+          path: |
+            DesignBuddy_*.app.tar.gz
+            DesignBuddy_*.app.tar.gz.sig
+
+  publish-release:
+    name: Publish updater release
+    needs: build-macos
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out release notes
+        uses: actions/checkout@v4
+
+      - name: Download signed updater artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          pattern: updater-*
+          merge-multiple: true
+
+      - name: Assemble release metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          x86_asset="DesignBuddy_${version}_darwin-x86_64.app.tar.gz"
+          arm_asset="DesignBuddy_${version}_darwin-aarch64.app.tar.gz"
+          x86_signature="$(cat "release-assets/$x86_asset.sig")"
+          arm_signature="$(cat "release-assets/$arm_asset.sig")"
+          jq -n \
+            --arg version "${version}" \
+            --arg notes "$(cat CHANGELOG.md)" \
+            --arg pub_date "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+            --arg x86_signature "${x86_signature}" \
+            --arg x86_url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${x86_asset}" \
+            --arg arm_signature "${arm_signature}" \
+            --arg arm_url "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/${arm_asset}" \
+            '{version: $version, notes: $notes, pub_date: $pub_date, platforms: {"darwin-x86_64": {signature: $x86_signature, url: $x86_url}, "darwin-aarch64": {signature: $arm_signature, url: $arm_url}}}' \
+            > latest.json
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            release-assets/*.app.tar.gz \
+            latest.json \
+            --title "DesignBuddy ${GITHUB_REF_NAME#v}" \
+            --notes-file CHANGELOG.md

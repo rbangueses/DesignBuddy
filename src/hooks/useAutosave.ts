@@ -15,6 +15,8 @@ function serializeScene(scene: ExcalidrawScene) {
   return JSON.stringify(scene);
 }
 
+const SAVE_DELAY_WARNING_MS = 10_000;
+
 export function useAutosave({
   project,
   fileName,
@@ -25,8 +27,10 @@ export function useAutosave({
   const [error, setError] = useState<string | null>(null);
   const lastSaved = useRef<string | null>(null);
   const pendingTimeout = useRef<number | null>(null);
+  const saveDelayTimeout = useRef<number | null>(null);
   const inFlightSave = useRef<Promise<boolean> | null>(null);
   const latestScene = useRef(scene);
+  const [isSaveDelayed, setIsSaveDelayed] = useState(false);
   const sceneKey = `${project}/${fileName}`;
   const lastSceneKey = useRef(sceneKey);
 
@@ -43,17 +47,28 @@ export function useAutosave({
     pendingTimeout.current = null;
   }, []);
 
+  const clearSaveDelayTimeout = useCallback(() => {
+    if (saveDelayTimeout.current === null) {
+      return;
+    }
+
+    window.clearTimeout(saveDelayTimeout.current);
+    saveDelayTimeout.current = null;
+  }, []);
+
   useEffect(() => {
     if (lastSceneKey.current === sceneKey) {
       return;
     }
 
     clearPendingTimeout();
+    clearSaveDelayTimeout();
     lastSceneKey.current = sceneKey;
     lastSaved.current = null;
     setStatus("saved");
     setError(null);
-  }, [clearPendingTimeout, sceneKey]);
+    setIsSaveDelayed(false);
+  }, [clearPendingTimeout, clearSaveDelayTimeout, sceneKey]);
 
   const saveNow = useCallback(async () => {
     if (!latestScene.current) {
@@ -68,6 +83,13 @@ export function useAutosave({
 
     setStatus("saving");
     setError(null);
+    setIsSaveDelayed(false);
+    clearSaveDelayTimeout();
+    saveDelayTimeout.current = window.setTimeout(() => {
+      if (inFlightSave.current) {
+        setIsSaveDelayed(true);
+      }
+    }, SAVE_DELAY_WARNING_MS);
 
     const saveRequest = (async () => {
       try {
@@ -104,12 +126,14 @@ export function useAutosave({
         return false;
       } finally {
         inFlightSave.current = null;
+        clearSaveDelayTimeout();
+        setIsSaveDelayed(false);
       }
     })();
 
     inFlightSave.current = saveRequest;
     return saveRequest;
-  }, [clearPendingTimeout, fileName, project]);
+  }, [clearPendingTimeout, clearSaveDelayTimeout, fileName, project]);
 
   useEffect(() => {
     if (!enabled || !scene) {
@@ -145,5 +169,5 @@ export function useAutosave({
     };
   }, [clearPendingTimeout, enabled, saveNow, scene]);
 
-  return { status, saveNow, error };
+  return { status, saveNow, error, isSaveDelayed };
 }

@@ -534,6 +534,108 @@ textarea {
   margin-top: 10px;
 }
 
+.update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.update-install-button {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #ffffff;
+}
+
+.update-install-button:hover:not(:disabled) {
+  background: #0b5e57;
+}
+
+.update-status {
+  max-width: 56ch;
+  margin-top: 10px;
+}
+
+.update-review-backdrop {
+  z-index: 10001;
+}
+
+.update-review-dialog {
+  width: min(680px, calc(100vw - 32px));
+  padding: 0;
+}
+
+.update-review-header {
+  border-bottom: 1px solid #deded8;
+  padding: 22px 24px 18px;
+}
+
+.update-review-header p {
+  margin: 0 0 5px;
+  color: #0f766e;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.update-review-header h2 {
+  margin: 0;
+}
+
+.update-review-header span {
+  display: block;
+  margin-top: 5px;
+  color: #5f6368;
+  font-size: 13px;
+}
+
+.update-review-intro {
+  max-width: 62ch;
+  margin: 18px 24px 14px;
+  color: #3c4043;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.update-changelog {
+  max-height: min(44dvh, 420px);
+  margin: 0 24px;
+  border: 1px solid #deded8;
+  border-radius: 6px;
+  overflow: auto;
+}
+
+.update-changelog-section {
+  padding: 14px 16px;
+}
+
+.update-changelog-section + .update-changelog-section {
+  border-top: 1px solid #e9e7e1;
+}
+
+.update-changelog-section h3 {
+  margin: 0 0 8px;
+  color: #1f2933;
+  font-size: 14px;
+}
+
+.update-changelog-section ul {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding-left: 19px;
+  color: #3c4043;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.update-review-actions {
+  position: sticky;
+  bottom: 0;
+  margin: 18px 0 0;
+  border-top: 1px solid #ecebe6;
+  background: #ffffff;
+  padding: 14px 24px 20px;
+}
+
 .settings-help,
 .settings-status {
   margin: 0 0 10px;
@@ -1161,6 +1263,33 @@ textarea {
 .save-status.error,
 .save-error {
   color: #9b1c1c;
+}
+
+.save-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-bottom: 1px solid #f0b8b8;
+  background: #fff1f1;
+  padding: 10px 18px;
+  color: #7f1d1d;
+}
+
+.save-alert strong {
+  display: block;
+  font-size: 14px;
+}
+
+.save-alert p {
+  margin: 2px 0 0;
+  font-size: 12px;
+}
+
+.save-alert-warning {
+  border-color: #e7c46a;
+  background: #fff8df;
+  color: #77590a;
 }
 
 .settings-version {

@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { check, type Update } from "@tauri-apps/plugin-updater";
 import {
   AI_MODEL_OPTIONS,
   AI_QUALITY_OPTIONS,
@@ -15,8 +16,10 @@ import {
   getAiDiagnosticCount,
 } from "../lib/aiDiagnostics";
 import type { BackupSettings } from "../lib/backupSettings";
+import type { AutomaticBackupResult } from "../types/designs";
 import { useDialogEscape } from "./useDialogEscape";
 import packageJson from "../../package.json";
+import changelog from "../../CHANGELOG.md?raw";
 
 type AiSettingsDialogProps = {
   settings: AiSettings;
@@ -27,9 +30,40 @@ type AiSettingsDialogProps = {
     projectCount: number;
     fileCount: number;
   }>;
+  onBackUpBeforeUpdate: (targetVersion: string) => Promise<AutomaticBackupResult>;
   onRestoreFromBackup: () => void;
   onSave: (settings: AiSettings, backupSettings: BackupSettings) => void;
 };
+
+type ChangelogSection = {
+  heading: string;
+  entries: string[];
+};
+
+function parseChangelog(notes: string | undefined): ChangelogSection[] {
+  if (!notes?.trim()) {
+    return [];
+  }
+
+  return notes
+    .split(/(?=^## )/m)
+    .map((section) => {
+      const lines = section
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const heading = lines.shift()?.replace(/^#+\s*/, "");
+      if (!heading || (heading === "Changelog" && lines.length === 0)) {
+        return null;
+      }
+
+      return {
+        heading,
+        entries: lines.map((line) => line.replace(/^-\s+/, "")),
+      };
+    })
+    .filter((section): section is ChangelogSection => section !== null);
+}
 
 export function AiSettingsDialog({
   settings,
@@ -37,6 +71,7 @@ export function AiSettingsDialog({
   onCancel,
   onChooseBackupFolder,
   onBackUpNow,
+  onBackUpBeforeUpdate,
   onRestoreFromBackup,
   onSave,
 }: AiSettingsDialogProps) {
@@ -58,6 +93,13 @@ export function AiSettingsDialog({
   );
   const [backupStatus, setBackupStatus] = useState<string | null>(null);
   const [isBackingUp, setIsBackingUp] = useState(false);
+  const [availableUpdate, setAvailableUpdate] = useState<Update | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<string | null>(null);
+  const [isCheckingForUpdates, setIsCheckingForUpdates] = useState(false);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState(false);
+  const [isUpdateReviewOpen, setIsUpdateReviewOpen] = useState(false);
+  const [reviewedChangelog, setReviewedChangelog] = useState<string | null>(null);
+  const updateRef = useRef<Update | null>(null);
   const [error, setError] = useState<string | null>(null);
   const apiKeyId = useId();
   const apiBaseUrlId = useId();
@@ -66,7 +108,22 @@ export function AiSettingsDialog({
   const qualityId = useId();
   const errorId = useId();
 
-  useDialogEscape(onCancel);
+  useDialogEscape(isUpdateReviewOpen ? handleDismissUpdateReview : onCancel);
+
+  useEffect(() => {
+    return () => {
+      void updateRef.current?.close().catch(() => undefined);
+    };
+  }, []);
+
+  function replaceAvailableUpdate(update: Update | null) {
+    const previousUpdate = updateRef.current;
+    updateRef.current = update;
+    setAvailableUpdate(update);
+    if (previousUpdate && previousUpdate !== update) {
+      void previousUpdate.close().catch(() => undefined);
+    }
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -134,6 +191,87 @@ export function AiSettingsDialog({
       );
     } finally {
       setIsBackingUp(false);
+    }
+  }
+
+  async function handleCheckForUpdates() {
+    setIsCheckingForUpdates(true);
+    setUpdateStatus(null);
+    try {
+      const update = await check({ timeout: 20_000 });
+      replaceAvailableUpdate(update);
+      setReviewedChangelog(update?.body || changelog);
+      setIsUpdateReviewOpen(true);
+      setUpdateStatus(
+        update
+          ? `Version ${update.version} is ready to review.`
+          : "You’re up to date.",
+      );
+    } catch (updateError) {
+      replaceAvailableUpdate(null);
+      setUpdateStatus(
+        updateError instanceof Error
+          ? `Couldn’t check for updates: ${updateError.message}`
+          : "Couldn’t check for updates. Try again later.",
+      );
+    } finally {
+      setIsCheckingForUpdates(false);
+    }
+  }
+
+  function handleDismissUpdateReview() {
+    const version = updateRef.current?.version;
+    setIsUpdateReviewOpen(false);
+    replaceAvailableUpdate(null);
+    setReviewedChangelog(null);
+    if (version) {
+      setUpdateStatus(`Update to ${version} was not installed.`);
+    }
+  }
+
+  async function handleInstallUpdate() {
+    const update = updateRef.current;
+    if (!update) return;
+
+    setIsInstallingUpdate(true);
+    setUpdateStatus(`Backing up your library before installing ${update.version}…`);
+
+    try {
+      const backup = await onBackUpBeforeUpdate(update.version);
+      setUpdateStatus(
+        `Backup complete (${backup.fileCount} ${backup.fileCount === 1 ? "file" : "files"}). Downloading ${update.version}…`,
+      );
+      let contentLength = 0;
+      let downloadedBytes = 0;
+      await update.download((event) => {
+        if (event.event === "Started") {
+          contentLength = event.data.contentLength ?? 0;
+          downloadedBytes = 0;
+        } else if (event.event === "Progress") {
+          downloadedBytes += event.data.chunkLength;
+          if (contentLength > 0) {
+            setUpdateStatus(
+              `Downloading ${update.version} (${Math.min(100, Math.round((downloadedBytes / contentLength) * 100))}%)…`,
+            );
+          }
+        }
+      }, { timeout: 120_000 });
+      setUpdateStatus(`Installing ${update.version}…`);
+      await update.install();
+      replaceAvailableUpdate(null);
+      setIsUpdateReviewOpen(false);
+      setReviewedChangelog(null);
+      setUpdateStatus(
+        `Version ${update.version} is installed. Quit and reopen DesignBuddy to start using it.`,
+      );
+    } catch (updateError) {
+      setUpdateStatus(
+        updateError instanceof Error
+          ? `Update was not installed: ${updateError.message}`
+          : "Update was not installed. Your current version is still available.",
+      );
+    } finally {
+      setIsInstallingUpdate(false);
     }
   }
 
@@ -291,6 +429,37 @@ export function AiSettingsDialog({
             ) : null}
           </section>
 
+          <section className="settings-section update-section">
+            <h3>Updates</h3>
+            <p className="settings-help">
+              Updates are downloaded only from DesignBuddy’s signed release channel. Before installation, this Mac automatically saves a restorable copy of your library in Documents/DesignBuddy/Backups.
+            </p>
+            <div className="update-actions">
+              <button
+                type="button"
+                onClick={handleCheckForUpdates}
+                disabled={isCheckingForUpdates || isInstallingUpdate}
+              >
+                {isCheckingForUpdates ? "Checking for updates..." : "Check for updates"}
+              </button>
+              {availableUpdate && !isUpdateReviewOpen ? (
+                <button
+                  type="button"
+                  className="update-install-button"
+                  onClick={() => setIsUpdateReviewOpen(true)}
+                  disabled={isInstallingUpdate}
+                >
+                  {`Review ${availableUpdate.version}`}
+                </button>
+              ) : null}
+            </div>
+            {updateStatus ? (
+              <p className="settings-status update-status" role="status" aria-live="polite">
+                {updateStatus}
+              </p>
+            ) : null}
+          </section>
+
           <p className="settings-version">DesignBuddy {packageJson.version}</p>
 
           {error ? (
@@ -307,6 +476,71 @@ export function AiSettingsDialog({
           </div>
         </form>
       </section>
+      {isUpdateReviewOpen ? (
+        <div className="dialog-backdrop update-review-backdrop" role="presentation">
+          <section
+            className="dialog update-review-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="update-review-title"
+          >
+            <div className="update-review-header">
+              <p>{availableUpdate ? "Update available" : "You’re up to date"}</p>
+              <h2 id="update-review-title">
+                DesignBuddy {availableUpdate?.version ?? packageJson.version}
+              </h2>
+              <span>
+                {availableUpdate
+                  ? `Currently installed: ${availableUpdate.currentVersion}`
+                  : "You already have the latest available release."}
+              </span>
+            </div>
+            <p className="update-review-intro">
+              {availableUpdate
+                ? "Review the changes before updating. A dated backup of your local library will be created before any download starts."
+                : "Here’s what’s included in your installed version and the releases before it."}
+            </p>
+            <div className="update-changelog" aria-label="Release notes">
+              {parseChangelog(reviewedChangelog ?? changelog).length > 0 ? (
+                parseChangelog(reviewedChangelog ?? changelog).map((section) => (
+                  <section className="update-changelog-section" key={section.heading}>
+                    <h3>{section.heading}</h3>
+                    {section.entries.length > 0 ? (
+                      <ul>
+                        {section.entries.map((entry, index) => (
+                          <li key={`${section.heading}-${index}`}>{entry}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </section>
+                ))
+              ) : (
+                <p>Release notes are unavailable for this update.</p>
+              )}
+            </div>
+            {updateStatus ? (
+              <p className="settings-status update-status" role="status" aria-live="polite">
+                {updateStatus}
+              </p>
+            ) : null}
+            <div className="dialog-actions update-review-actions">
+              <button type="button" onClick={handleDismissUpdateReview} disabled={isInstallingUpdate}>
+                {availableUpdate ? "Cancel" : "Close"}
+              </button>
+              {availableUpdate ? (
+                <button
+                  type="button"
+                  className="update-install-button"
+                  onClick={handleInstallUpdate}
+                  disabled={isInstallingUpdate}
+                >
+                  {isInstallingUpdate ? "Updating..." : `Update to ${availableUpdate.version}`}
+                </button>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

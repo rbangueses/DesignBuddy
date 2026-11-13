@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 use thiserror::Error;
@@ -16,6 +17,14 @@ pub struct ProjectSummary {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct BackupResult {
+    pub project_count: usize,
+    pub file_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct AutomaticBackupResult {
+    pub backup_path: String,
     pub project_count: usize,
     pub file_count: usize,
 }
@@ -820,26 +829,38 @@ pub fn write_design(
     }
 
     let tmp_path = path.with_extension(format!("{}.tmp", extension_for_kind(&kind)));
-    match kind {
-        DesignKind::Excalidraw | DesignKind::Note => {
-            fs::write(&tmp_path, serde_json::to_string_pretty(content)?)?
-        }
-        DesignKind::Mermaid => {
-            let source = content
-                .get("source")
-                .and_then(Value::as_str)
-                .ok_or_else(|| {
-                    DesignError::InvalidDesignFile("missing mermaid source".to_string())
-                })?;
-            fs::write(&tmp_path, source)?;
-        }
-    }
+    let bytes = match kind {
+        DesignKind::Excalidraw | DesignKind::Note => serde_json::to_vec_pretty(content)?,
+        DesignKind::Mermaid => content
+            .get("source")
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                DesignError::InvalidDesignFile("missing mermaid source".to_string())
+            })?
+            .as_bytes()
+            .to_vec(),
+    };
+
+    let mut tmp_file = fs::File::create(&tmp_path)?;
+    tmp_file.write_all(&bytes)?;
+    tmp_file.sync_all()?;
+    drop(tmp_file);
+
     fs::rename(&tmp_path, &path)?;
-    read_design(
+    fs::File::open(&path)?.sync_all()?;
+
+    let saved = read_design(
         root,
         project,
         path.file_name().unwrap().to_string_lossy().as_ref(),
-    )
+    )?;
+    if saved.content != *content {
+        return Err(DesignError::InvalidDesignFile(
+            "saved content did not match the requested design".to_string(),
+        ));
+    }
+
+    Ok(saved)
 }
 
 pub fn read_diagram_notes(

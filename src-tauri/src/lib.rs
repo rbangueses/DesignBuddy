@@ -1,6 +1,6 @@
 pub mod designs;
 
-use designs::{BackupResult, DesignKind, DiagramNotes, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
+use designs::{AutomaticBackupResult, BackupResult, DesignKind, DiagramNotes, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 use tauri::Manager;
@@ -244,6 +244,33 @@ fn backup_library(app: tauri::AppHandle, target_path: String) -> Result<BackupRe
 }
 
 #[tauri::command]
+fn backup_before_update(
+    app: tauri::AppHandle,
+    target_version: String,
+) -> Result<AutomaticBackupResult, String> {
+    let documents_dir = app
+        .path()
+        .document_dir()
+        .map_err(|error| format!("Could not find Documents directory: {error}"))?;
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_err(|error| format!("Could not create a backup timestamp: {error}"))?
+        .as_secs();
+    let backup_path = documents_dir
+        .join("DesignBuddy")
+        .join("Backups")
+        .join(format!("Before update to {target_version} ({timestamp})"));
+    let result = designs::backup_library(&designs_root(&app)?, &backup_path)
+        .map_err(|error| error.to_string())?;
+
+    Ok(AutomaticBackupResult {
+        backup_path: backup_path.to_string_lossy().into_owned(),
+        project_count: result.project_count,
+        file_count: result.file_count,
+    })
+}
+
+#[tauri::command]
 fn scan_backup(app: tauri::AppHandle, source_path: String) -> Result<RestorePreview, String> {
     designs::scan_backup(&designs_root(&app)?, &PathBuf::from(source_path))
         .map_err(|error| error.to_string())
@@ -262,6 +289,7 @@ fn restore_backup(
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             list_projects,
             create_project,
@@ -284,6 +312,7 @@ pub fn run() {
             export_design,
             export_drawio,
             backup_library,
+            backup_before_update,
             scan_backup,
             restore_backup
         ])

@@ -315,6 +315,100 @@ describe("useAutosave", () => {
     expect(result.current.status).toBe("saved");
   });
 
+  it("reports a failed write and lets a later retry succeed", async () => {
+    vi.mocked(designApi.writeDesign)
+      .mockRejectedValueOnce(new Error("disk is full"))
+      .mockResolvedValueOnce({
+        project: "App",
+        name: "Flow",
+        fileName: "Flow.excalidraw",
+        kind: "excalidraw",
+        content: { type: "excalidraw", elements: [{ id: "a" }], appState: {}, files: {} },
+      });
+
+    const scene = {
+      type: "excalidraw" as const,
+      elements: [{ id: "a" }] as unknown[],
+      appState: {},
+      files: {},
+    };
+    const { rerender, result } = renderHook(
+      ({ currentScene }) =>
+        useAutosave({
+          project: "App",
+          fileName: "Flow.excalidraw",
+          scene: currentScene,
+          enabled: true,
+        }),
+      { initialProps: { currentScene: { ...scene, elements: [] as unknown[] } } },
+    );
+
+    rerender({ currentScene: scene });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(900);
+    });
+
+    expect(result.current.status).toBe("error");
+    expect(result.current.error).toContain("disk is full");
+
+    await act(async () => {
+      await result.current.saveNow();
+    });
+
+    expect(result.current.status).toBe("saved");
+    expect(designApi.writeDesign).toHaveBeenCalledTimes(2);
+  });
+
+  it("flags a save that remains pending for too long", async () => {
+    const deferred = createDeferred<{
+      project: string;
+      name: string;
+      fileName: string;
+      kind: "excalidraw";
+      content: { type: "excalidraw"; elements: unknown[]; appState: {}; files: {} };
+    }>();
+    vi.mocked(designApi.writeDesign).mockReturnValue(deferred.promise);
+
+    const { rerender, result } = renderHook(
+      ({ scene }) =>
+        useAutosave({
+          project: "App",
+          fileName: "Flow.excalidraw",
+          scene,
+          enabled: true,
+        }),
+      {
+        initialProps: {
+          scene: { type: "excalidraw" as const, elements: [] as unknown[], appState: {}, files: {} },
+        },
+      },
+    );
+
+    rerender({
+      scene: { type: "excalidraw" as const, elements: [{ id: "a" }] as unknown[], appState: {}, files: {} },
+    });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(10_900);
+    });
+
+    expect(result.current.status).toBe("saving");
+    expect(result.current.isSaveDelayed).toBe(true);
+
+    deferred.resolve({
+      project: "App",
+      name: "Flow",
+      fileName: "Flow.excalidraw",
+      kind: "excalidraw",
+      content: { type: "excalidraw", elements: [{ id: "a" }], appState: {}, files: {} },
+    });
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(result.current.status).toBe("saved");
+    expect(result.current.isSaveDelayed).toBe(false);
+  });
+
   afterAll(() => {
     vi.useRealTimers();
   });

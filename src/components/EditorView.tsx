@@ -5,6 +5,7 @@ import type {
   PointerDownState,
 } from "@excalidraw/excalidraw/types";
 import { save } from "@tauri-apps/plugin-dialog";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import {
   ArrowLeft,
   Bot,
@@ -224,6 +225,7 @@ export function EditorView({
   const latestNotesRef = useRef("");
   const canvasPointerRef = useRef<CanvasPointerPosition | null>(null);
   const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const isClosingRef = useRef(false);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
   const autosave = useAutosave({
@@ -232,6 +234,45 @@ export function EditorView({
     scene: autosaveScene,
     enabled: Boolean(autosaveScene) && loadedSceneKey === sceneKey,
   });
+
+  useEffect(() => {
+    let disposed = false;
+    let unlisten: (() => void) | undefined;
+
+    void (async () => {
+      try {
+        const appWindow = getCurrentWindow();
+        const removeListener = await appWindow.onCloseRequested(async (event) => {
+          if (isClosingRef.current || !latestSceneRef.current) {
+            return;
+          }
+
+          event.preventDefault();
+          setIsLeaving(true);
+
+          const didSave = await autosave.saveNow();
+          if (didSave) {
+            isClosingRef.current = true;
+            await appWindow.close();
+          } else {
+            setIsLeaving(false);
+          }
+        });
+        if (disposed) {
+          removeListener();
+        } else {
+          unlisten = removeListener;
+        }
+      } catch {
+        // The browser-based test environment does not provide a Tauri window.
+      }
+    })();
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [autosave.saveNow]);
 
   useEffect(() => {
     let cancelled = false;
@@ -356,7 +397,7 @@ export function EditorView({
       return;
     }
 
-    if (!latestSceneRef.current || autosave.status === "saved") {
+    if (!latestSceneRef.current) {
       onBack();
       return;
     }
@@ -379,10 +420,6 @@ export function EditorView({
 
     if (!latestScene) {
       throw new Error("Design is still loading.");
-    }
-
-    if (autosave.status === "saved") {
-      return latestScene;
     }
 
     const didSave = await autosave.saveNow();
@@ -727,6 +764,14 @@ export function EditorView({
   ]);
 
   const isBusy = isLeaving || isFileActionRunning;
+  const saveStatusLabel =
+    autosave.status === "error"
+      ? "Save failed"
+      : autosave.status === "unsaved"
+        ? "Changes not saved"
+        : autosave.isSaveDelayed
+          ? "Saving is taking longer than expected"
+          : autosave.status;
 
   return (
     <div className="editor-view">
@@ -857,7 +902,9 @@ export function EditorView({
               },
             ]}
           />
-          <span className={`save-status ${autosave.status}`}>{autosave.status}</span>
+          <span className={`save-status ${autosave.status}`} aria-live="polite">
+            {saveStatusLabel}
+          </span>
           <button
             type="button"
             className="save-button editor-header-tooltip"
@@ -870,6 +917,29 @@ export function EditorView({
           </button>
         </div>
       </header>
+      {autosave.status === "error" ? (
+        <section className="save-alert" role="alert">
+          <div>
+            <strong>Changes are not saved</strong>
+            <p>{autosave.error ?? "DesignBuddy could not write this diagram to disk."}</p>
+          </div>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={() => void autosave.saveNow()}
+            disabled={isBusy}
+          >
+            Retry save
+          </button>
+        </section>
+      ) : autosave.isSaveDelayed ? (
+        <section className="save-alert save-alert-warning" role="status" aria-live="polite">
+          <div>
+            <strong>Still saving your changes</strong>
+            <p>Keep DesignBuddy open until saving finishes. This should normally take only a moment.</p>
+          </div>
+        </section>
+      ) : null}
       {loadError ? (
         <main className="empty-state">{loadError}</main>
       ) : initialData ? (
@@ -918,7 +988,6 @@ export function EditorView({
               </footer>
             </aside>
           ) : null}
-          {autosave.error ? <div className="save-error">{autosave.error}</div> : null}
         </main>
       ) : (
         <main className="empty-state">Loading editor...</main>

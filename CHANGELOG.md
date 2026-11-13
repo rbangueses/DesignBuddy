@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-13 — 0.3.7
+
+- Hardened local saves for diagrams, Mermaid files, and notes. DesignBuddy now writes through a temporary file, flushes it to disk, verifies the saved content can be read back correctly, and only then reports success.
+- Made save problems explicit in the editor: failed saves remain visibly flagged with the underlying error and a **Retry save** action, instead of leaving a misleading saved state.
+- Added a clear warning when a save remains in progress for more than 10 seconds, so a stalled save cannot go unnoticed.
+- Protected against closing a native editor window while changes are pending: DesignBuddy completes a final save before it closes, and keeps the editor open if that save fails.
+- Added signed in-app update checks in Settings. Before an update downloads, DesignBuddy creates a dated local library backup in `Documents/DesignBuddy/Backups`; failed backups prevent installation.
+- Added an update review screen that shows release notes newest-first before any backup or download starts. When already current, it confirms that status and keeps the changelog available to read.
+
 ## 2026-11-12 — 0.3.5
 
 - Added a persisted **Selection** mode to Excalidraw diagrams. Switch between the familiar **Wrap** marquee behaviour (select only fully enclosed elements) and **Overlap** (select any unlocked element the marquee touches).

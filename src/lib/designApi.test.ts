@@ -56,6 +56,24 @@ describe("designApi", () => {
     });
   });
 
+  it("creates a verified backup before an in-app update", async () => {
+    invoke.mockResolvedValueOnce({
+      backupPath: "/Documents/DesignBuddy/Backups/Before update to 0.3.6 (1)",
+      projectCount: 2,
+      fileCount: 5,
+    });
+    const { designApi } = await import("./designApi");
+
+    await expect(designApi.backupBeforeUpdate("0.3.6")).resolves.toEqual({
+      backupPath: "/Documents/DesignBuddy/Backups/Before update to 0.3.6 (1)",
+      projectCount: 2,
+      fileCount: 5,
+    });
+    expect(invoke).toHaveBeenCalledWith("backup_before_update", {
+      targetVersion: "0.3.6",
+    });
+  });
+
   it("scans and restores explicitly selected backup artifacts", async () => {
     invoke
       .mockResolvedValueOnce({ artifacts: [], invalidFileCount: 0 })
