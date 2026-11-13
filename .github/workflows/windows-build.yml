@@ -42,7 +42,10 @@ jobs:
         run: npm run test:run
 
       - name: Run Rust tests
-        run: cargo test --manifest-path src-tauri/Cargo.toml
+        # The library tests exercise many independent temporary folders. Windows
+        # can keep a just-closed handle alive briefly, so run them serially here
+        # to keep CI deterministic without weakening the production code.
+        run: cargo test --manifest-path src-tauri/Cargo.toml -- --test-threads=1
 
       - name: Clean stale bundle output
         shell: pwsh
