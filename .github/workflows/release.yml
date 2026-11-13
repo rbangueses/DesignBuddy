@@ -18,8 +18,10 @@ jobs:
         include:
           - runner: macos-13
             target: darwin-x86_64
-          - runner: macos-14
+            rust_target: x86_64-apple-darwin
+          - runner: macos-13
             target: darwin-aarch64
+            rust_target: aarch64-apple-darwin
 
     steps:
       - name: Check out the tagged release
@@ -34,6 +36,9 @@ jobs:
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
 
+      - name: Add Rust build target
+        run: rustup target add ${{ matrix.rust_target }}
+
       - name: Install dependencies
         run: npm ci
 
@@ -46,7 +51,7 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
-        run: npm exec tauri build -- --bundles app --config '{"bundle":{"createUpdaterArtifacts":true}}'
+        run: npm exec tauri build -- --target ${{ matrix.rust_target }} --bundles app --config '{"bundle":{"createUpdaterArtifacts":true}}'
 
       - name: Prepare updater artifact
         shell: bash
