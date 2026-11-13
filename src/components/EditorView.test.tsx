@@ -349,14 +349,10 @@ describe("EditorView", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
-    const saveButton = screen.getByRole("button", { name: "Save" });
     const backButton = screen.getByRole("button", { name: "Back to library" });
 
-    expect(designApi.writeDesign).toHaveBeenCalledTimes(1);
-    expect(screen.getByText("saving")).toBeVisible();
-    expect(saveButton).toBeDisabled();
+    await waitFor(() => expect(designApi.writeDesign).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Saving…")).toBeVisible();
 
     await user.click(backButton);
 
@@ -431,9 +427,8 @@ describe("EditorView", () => {
     );
 
     await user.click(await screen.findByRole("button", { name: "Edit scene" }));
-    await user.click(screen.getByRole("button", { name: "Save" }));
 
-    expect(designApi.writeDesign).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(designApi.writeDesign).toHaveBeenCalledTimes(1));
     expect(designApi.writeDesign).toHaveBeenNthCalledWith(
       1,
       "App",
@@ -443,7 +438,7 @@ describe("EditorView", () => {
         elements: [{ id: "changed-1" }],
       }),
     );
-    expect(screen.getByText("saving")).toBeVisible();
+    expect(screen.getByText("Saving…")).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: "Edit scene" }));
     await user.click(screen.getByRole("button", { name: "Back to library" }));
@@ -477,7 +472,7 @@ describe("EditorView", () => {
       }),
     );
     expect(onBack).not.toHaveBeenCalled();
-    expect(screen.getByText("saving")).toBeVisible();
+    expect(screen.getByText("Saving…")).toBeVisible();
 
     await act(async () => {
       secondWrite.resolve({
@@ -759,8 +754,6 @@ describe("EditorView", () => {
     ] as { elements?: unknown[] };
     expect(lastInitialData.elements).toEqual([{ id: "modified" }]);
 
-    await user.click(screen.getByRole("button", { name: "Save" }));
-
     await waitFor(() =>
       expect(designApi.writeDesign).toHaveBeenCalledWith(
         "App",
@@ -805,8 +798,6 @@ describe("EditorView", () => {
     await user.click(screen.getByRole("button", { name: "Insert Twilio Orchestrator" }));
 
     expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Save" }));
 
     await waitFor(() =>
       expect(designApi.writeDesign).toHaveBeenCalledWith(

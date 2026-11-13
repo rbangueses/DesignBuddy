@@ -1,5 +1,13 @@
 import type { ExcalidrawScene } from "../types/excalidraw";
 
+const PERSISTED_APP_STATE_KEYS = new Set([
+  "gridModeEnabled",
+  "gridSize",
+  "gridStep",
+  "theme",
+  "viewBackgroundColor",
+]);
+
 const RUNTIME_APP_STATE_KEYS = new Set([
   "activeEmbeddable",
   "collaborators",
@@ -42,6 +50,18 @@ const RUNTIME_APP_STATE_KEYS = new Set([
 ]);
 
 function sanitizeAppState(appState: Record<string, unknown> | undefined) {
+  if (!appState) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(appState).filter(
+      ([key]) => PERSISTED_APP_STATE_KEYS.has(key) && !RUNTIME_APP_STATE_KEYS.has(key),
+    ),
+  );
+}
+
+function sanitizeAppStateForExcalidraw(appState: Record<string, unknown> | undefined) {
   if (!appState) {
     return {};
   }
@@ -125,5 +145,12 @@ export function prepareSceneForStorage(scene: ExcalidrawScene): ExcalidrawScene 
 }
 
 export function prepareSceneForExcalidraw(scene: ExcalidrawScene): ExcalidrawScene {
-  return prepareSceneForStorage(scene);
+  return {
+    type: "excalidraw",
+    version: scene.version ?? 2,
+    source: scene.source ?? "banguesesdraw",
+    elements: scene.elements.map(normalizeElement),
+    appState: sanitizeAppStateForExcalidraw(scene.appState),
+    files: scene.files ?? {},
+  };
 }

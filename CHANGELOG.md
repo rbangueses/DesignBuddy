@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-13 — 0.3.9
+
+- Calmed diagram autosave feedback: the header keeps a fixed Saved/Saving status slot, no longer presents a false unsaved state while a diagram opens, and removes the redundant manual Save button.
+- Ignore transient Excalidraw viewport and interaction state when deciding whether a diagram changed, while retaining diagram appearance settings such as background, theme, and grid.
+- Record failed diagram and diagram-note saves in `Documents/DesignBuddy/Logs/save-failures.jsonl` without logging diagram content, and point to that file in the retry alert.
+- Kept the Back tooltip inside the editor window by anchoring it from the left edge.
+
 ## 2026-11-13 — 0.3.8
 
 - Made the update action use the same blue primary-button treatment as the rest of DesignBuddy.

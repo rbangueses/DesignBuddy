@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { designApi } from "../lib/designApi";
 import type { ExcalidrawScene } from "../types/excalidraw";
 
-export type SaveStatus = "saved" | "saving" | "unsaved" | "error";
+export type SaveStatus = "saved" | "saving" | "error";
 
 type UseAutosaveArgs = {
   project: string;
@@ -156,8 +156,6 @@ export function useAutosave({
       setStatus("saving");
       return;
     }
-
-    setStatus("unsaved");
 
     pendingTimeout.current = window.setTimeout(() => {
       pendingTimeout.current = null;

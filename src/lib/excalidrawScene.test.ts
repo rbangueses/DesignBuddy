@@ -15,10 +15,7 @@ describe("Excalidraw scene normalization", () => {
       files: {},
     });
 
-    expect(scene.appState).toEqual({
-      viewBackgroundColor: "#ffffff",
-      zoom: { value: 1 },
-    });
+    expect(scene.appState).toEqual({ viewBackgroundColor: "#ffffff" });
   });
 
   it("normalizes reopened scenes that already contain JSON-serialized runtime state", () => {

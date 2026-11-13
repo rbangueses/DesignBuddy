@@ -13,7 +13,6 @@ import {
   FolderInput,
   MousePointer2,
   Pencil,
-  Save,
   Shapes,
   StickyNote,
 } from "lucide-react";
@@ -288,7 +287,7 @@ export function EditorView({
       const preparedScene = prepareSceneForExcalidraw(initialScene);
       latestSceneRef.current = preparedScene;
       setInitialData(preparedScene);
-      setAutosaveScene(preparedScene);
+      setAutosaveScene(prepareSceneForStorage(preparedScene));
       setLoadedSceneKey(sceneKey);
       return () => {
         cancelled = true;
@@ -307,7 +306,7 @@ export function EditorView({
           const preparedScene = prepareSceneForExcalidraw(design.content);
           latestSceneRef.current = preparedScene;
           setInitialData(preparedScene);
-          setAutosaveScene(preparedScene);
+          setAutosaveScene(prepareSceneForStorage(preparedScene));
           setLoadedSceneKey(sceneKey);
         }
       } catch (unknownError) {
@@ -438,7 +437,7 @@ export function EditorView({
       files: Record<string, unknown>,
     ) => {
       const currentScene = latestSceneRef.current;
-      const nextScene = prepareSceneForStorage({
+      const nextScene = prepareSceneForExcalidraw({
         type: "excalidraw",
         version: currentScene?.version,
         source: currentScene?.source,
@@ -448,7 +447,7 @@ export function EditorView({
       });
 
       latestSceneRef.current = nextScene;
-      setAutosaveScene(nextScene);
+      setAutosaveScene(prepareSceneForStorage(nextScene));
     },
     [],
   );
@@ -605,7 +604,7 @@ export function EditorView({
     const preparedScene = prepareSceneForExcalidraw(scene);
     latestSceneRef.current = preparedScene;
     setInitialData(preparedScene);
-    setAutosaveScene(preparedScene);
+    setAutosaveScene(prepareSceneForStorage(preparedScene));
     setSceneRevision((revision) => revision + 1);
     setPendingAction(null);
   }, []);
@@ -633,7 +632,7 @@ export function EditorView({
 
       latestSceneRef.current = nextScene;
       setInitialData(nextScene);
-      setAutosaveScene(nextScene);
+      setAutosaveScene(prepareSceneForStorage(nextScene));
       setSceneRevision((revision) => revision + 1);
       setPendingAction(null);
       setIsCustomizingTwilioShortcuts(false);
@@ -767,18 +766,18 @@ export function EditorView({
   const saveStatusLabel =
     autosave.status === "error"
       ? "Save failed"
-      : autosave.status === "unsaved"
-        ? "Changes not saved"
-        : autosave.isSaveDelayed
-          ? "Saving is taking longer than expected"
-          : autosave.status;
+      : autosave.isSaveDelayed
+        ? "Saving is taking longer than expected"
+        : autosave.status === "saving"
+          ? "Saving…"
+          : "Saved";
 
   return (
     <div className="editor-view">
       <header className="editor-header">
         <button
           type="button"
-          className="icon-button editor-header-tooltip"
+          className="icon-button editor-header-tooltip editor-header-tooltip--start"
           onClick={() => void handleBack()}
           aria-label="Back to library"
           data-tooltip="Return to the library."
@@ -905,16 +904,6 @@ export function EditorView({
           <span className={`save-status ${autosave.status}`} aria-live="polite">
             {saveStatusLabel}
           </span>
-          <button
-            type="button"
-            className="save-button editor-header-tooltip"
-            onClick={() => void autosave.saveNow()}
-            data-tooltip="Save changes now."
-            disabled={isBusy || autosave.status === "saving"}
-          >
-            <Save size={16} />
-            Save
-          </button>
         </div>
       </header>
       {autosave.status === "error" ? (
@@ -922,6 +911,7 @@ export function EditorView({
           <div>
             <strong>Changes are not saved</strong>
             <p>{autosave.error ?? "DesignBuddy could not write this diagram to disk."}</p>
+            <p>Details were recorded in Documents/DesignBuddy/Logs/save-failures.jsonl.</p>
           </div>
           <button
             type="button"

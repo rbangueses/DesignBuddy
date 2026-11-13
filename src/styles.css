@@ -1245,6 +1245,11 @@ textarea {
   transform: translateY(0);
 }
 
+.editor-header-tooltip--start::after {
+  right: auto;
+  left: 0;
+}
+
 .selection-mode-toggle:focus-visible {
   outline: 2px solid #5e5aa8;
   outline-offset: 2px;
@@ -1256,8 +1261,10 @@ textarea {
 }
 
 .save-status {
+  min-width: 58px;
   color: #676b73;
   font-size: 13px;
+  text-align: right;
   text-transform: capitalize;
 }
 

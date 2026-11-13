@@ -2,7 +2,10 @@ pub mod designs;
 
 use designs::{AutomaticBackupResult, BackupResult, DesignKind, DiagramNotes, DesignScene, DesignSummary, ProjectSummary, RestoreArtifact, RestorePreview, RestoreResult};
 use serde_json::Value;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
 fn designs_root_from_documents(documents_dir: &Path) -> PathBuf {
@@ -26,6 +29,48 @@ fn designs_root(app: &tauri::AppHandle) -> Result<PathBuf, String> {
         .map_err(|error| format!("Could not find Documents directory: {error}"))?;
 
     Ok(designs_root_from_documents(&documents_dir))
+}
+
+fn save_failure_log_path(designs_root: &Path) -> Option<PathBuf> {
+    designs_root
+        .parent()
+        .map(|library_root| library_root.join("Logs").join("save-failures.jsonl"))
+}
+
+fn log_save_failure(
+    designs_root: &Path,
+    operation: &str,
+    project: &str,
+    file_name: &str,
+    error: &str,
+) {
+    let Some(log_path) = save_failure_log_path(designs_root) else {
+        return;
+    };
+    let Some(log_dir) = log_path.parent() else {
+        return;
+    };
+
+    if std::fs::create_dir_all(log_dir).is_err() {
+        return;
+    }
+
+    let timestamp_ms = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    let entry = serde_json::json!({
+        "timestampMs": timestamp_ms,
+        "operation": operation,
+        "project": project,
+        "fileName": file_name,
+        "error": error,
+    });
+
+    let Ok(mut log_file) = OpenOptions::new().create(true).append(true).open(log_path) else {
+        return;
+    };
+    let _ = writeln!(log_file, "{entry}");
 }
 
 #[tauri::command]
@@ -111,8 +156,12 @@ fn write_design(
     file_name: String,
     content: Value,
 ) -> Result<DesignScene, String> {
-    designs::write_design(&designs_root(&app)?, &project, &file_name, &content)
-        .map_err(|error| error.to_string())
+    let root = designs_root(&app)?;
+    designs::write_design(&root, &project, &file_name, &content).map_err(|error| {
+        let message = error.to_string();
+        log_save_failure(&root, "write_design", &project, &file_name, &message);
+        message
+    })
 }
 
 #[tauri::command]
@@ -132,8 +181,12 @@ fn write_diagram_notes(
     file_name: String,
     text: String,
 ) -> Result<DiagramNotes, String> {
-    designs::write_diagram_notes(&designs_root(&app)?, &project, &file_name, &text)
-        .map_err(|error| error.to_string())
+    let root = designs_root(&app)?;
+    designs::write_diagram_notes(&root, &project, &file_name, &text).map_err(|error| {
+        let message = error.to_string();
+        log_save_failure(&root, "write_diagram_notes", &project, &file_name, &message);
+        message
+    })
 }
 
 #[tauri::command]
@@ -361,5 +414,33 @@ mod tests {
         assert!(!old_root.exists());
 
         std::fs::remove_dir_all(documents_dir).unwrap();
+    }
+
+    #[test]
+    fn writes_save_failure_entries_next_to_the_design_library() {
+        let root = std::env::temp_dir().join(format!(
+            "designbuddy-save-log-{}",
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let designs_root = root.join("Designs");
+
+        log_save_failure(
+            &designs_root,
+            "write_design",
+            "Plans",
+            "Friday.excalidraw",
+            "disk full",
+        );
+
+        let entry = std::fs::read_to_string(root.join("Logs").join("save-failures.jsonl"))
+            .unwrap();
+        assert!(entry.contains("write_design"));
+        assert!(entry.contains("Friday.excalidraw"));
+        assert!(entry.contains("disk full"));
+
+        std::fs::remove_dir_all(root).unwrap();
     }
 }
