@@ -20,6 +20,7 @@ import type { AutomaticBackupResult } from "../types/designs";
 import { useDialogEscape } from "./useDialogEscape";
 import packageJson from "../../package.json";
 import changelog from "../../CHANGELOG.md?raw";
+import { UpdateReviewDialog } from "./UpdateReviewDialog";
 
 type AiSettingsDialogProps = {
   settings: AiSettings;
@@ -35,36 +36,6 @@ type AiSettingsDialogProps = {
   onRestoreFromBackup: () => void;
   onSave: (settings: AiSettings, backupSettings: BackupSettings) => void;
 };
-
-type ChangelogSection = {
-  heading: string;
-  entries: string[];
-};
-
-function parseChangelog(notes: string | undefined): ChangelogSection[] {
-  if (!notes?.trim()) {
-    return [];
-  }
-
-  return notes
-    .split(/(?=^## )/m)
-    .map((section) => {
-      const lines = section
-        .split("\n")
-        .map((line) => line.trim())
-        .filter(Boolean);
-      const heading = lines.shift()?.replace(/^#+\s*/, "");
-      if (!heading || (heading === "Changelog" && lines.length === 0)) {
-        return null;
-      }
-
-      return {
-        heading,
-        entries: lines.map((line) => line.replace(/^-\s+/, "")),
-      };
-    })
-    .filter((section): section is ChangelogSection => section !== null);
-}
 
 export function AiSettingsDialog({
   settings,
@@ -478,69 +449,14 @@ export function AiSettingsDialog({
         </form>
       </section>
       {isUpdateReviewOpen ? (
-        <div className="dialog-backdrop update-review-backdrop" role="presentation">
-          <section
-            className="dialog update-review-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="update-review-title"
-          >
-            <div className="update-review-header">
-              <p>{availableUpdate ? "Update available" : "You’re up to date"}</p>
-              <h2 id="update-review-title">
-                DesignBuddy {availableUpdate?.version ?? packageJson.version}
-              </h2>
-              <span>
-                {availableUpdate
-                  ? `Currently installed: ${availableUpdate.currentVersion}`
-                  : "You already have the latest available release."}
-              </span>
-            </div>
-            <p className="update-review-intro">
-              {availableUpdate
-                ? "Review the changes before updating. A dated backup of your local library will be created before any download starts."
-                : "Here’s what’s included in your installed version and the releases before it."}
-            </p>
-            <div className="update-changelog" aria-label="Release notes">
-              {parseChangelog(reviewedChangelog ?? changelog).length > 0 ? (
-                parseChangelog(reviewedChangelog ?? changelog).map((section) => (
-                  <section className="update-changelog-section" key={section.heading}>
-                    <h3>{section.heading}</h3>
-                    {section.entries.length > 0 ? (
-                      <ul>
-                        {section.entries.map((entry, index) => (
-                          <li key={`${section.heading}-${index}`}>{entry}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </section>
-                ))
-              ) : (
-                <p>Release notes are unavailable for this update.</p>
-              )}
-            </div>
-            {updateStatus ? (
-              <p className="settings-status update-status" role="status" aria-live="polite">
-                {updateStatus}
-              </p>
-            ) : null}
-            <div className="dialog-actions update-review-actions">
-              <button type="button" onClick={handleDismissUpdateReview} disabled={isInstallingUpdate}>
-                {availableUpdate ? "Cancel" : "Close"}
-              </button>
-              {availableUpdate ? (
-                <button
-                  type="button"
-                  className="update-install-button"
-                  onClick={handleInstallUpdate}
-                  disabled={isInstallingUpdate}
-                >
-                  {isInstallingUpdate ? "Updating..." : `Update to ${availableUpdate.version}`}
-                </button>
-              ) : null}
-            </div>
-          </section>
-        </div>
+        <UpdateReviewDialog
+          update={availableUpdate}
+          releaseNotes={reviewedChangelog ?? changelog}
+          status={updateStatus}
+          isInstalling={isInstallingUpdate}
+          onCancel={handleDismissUpdateReview}
+          onInstall={() => void handleInstallUpdate()}
+        />
       ) : null}
     </div>
   );

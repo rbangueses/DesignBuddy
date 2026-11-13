@@ -1162,13 +1162,23 @@ pub fn delete_design(root: &Path, project: &str, file_name: &str) -> Result<(), 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    static TEST_ROOT_SEQUENCE: AtomicU64 = AtomicU64::new(0);
 
     fn test_root(label: &str) -> PathBuf {
         let stamp = std::time::SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_nanos();
-        std::env::temp_dir().join(format!("banguesesdraw-{label}-{stamp}"))
+        let sequence = TEST_ROOT_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+
+        // Windows can schedule several tests within one clock tick. Include a
+        // process-local sequence so parallel tests never contend for a folder.
+        std::env::temp_dir().join(format!(
+            "designbuddy-{label}-{}-{stamp}-{sequence}",
+            std::process::id(),
+        ))
     }
 
     #[test]

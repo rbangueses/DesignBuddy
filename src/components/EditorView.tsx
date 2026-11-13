@@ -224,6 +224,7 @@ export function EditorView({
   const latestNotesRef = useRef("");
   const canvasPointerRef = useRef<CanvasPointerPosition | null>(null);
   const excalidrawApiRef = useRef<ExcalidrawImperativeAPI | null>(null);
+  const boxSelectionPreviewRef = useRef<PointerDownState | null>(null);
   const isClosingRef = useRef(false);
   const sceneKey = `${project}/${fileName}`;
   const [loadedSceneKey, setLoadedSceneKey] = useState<string | null>(null);
@@ -461,11 +462,55 @@ export function EditorView({
     excalidrawApiRef.current = api;
   }, []);
 
+  const handleExcalidrawPointerDown = useCallback(
+    (
+      activeTool: { type: string },
+      pointerDownState: PointerDownState,
+    ) => {
+      boxSelectionPreviewRef.current =
+        boxSelectionMode === "overlap" && activeTool.type === "selection"
+          ? pointerDownState
+          : null;
+    },
+    [boxSelectionMode],
+  );
+
+  const handleExcalidrawPointerUpdate = useCallback(
+    ({ pointer, button }: { pointer: { x: number; y: number }; button: "down" | "up" }) => {
+      const pointerDownState = boxSelectionPreviewRef.current;
+      const api = excalidrawApiRef.current;
+      if (!pointerDownState || !api || button !== "down") return;
+
+      const hasMovedEnoughToSelect =
+        Math.abs(pointer.x - pointerDownState.origin.x) > 2 ||
+        Math.abs(pointer.y - pointerDownState.origin.y) > 2;
+      if (!hasMovedEnoughToSelect) return;
+
+      // Excalidraw previews wrap-selection frames while a marquee is dragged.
+      // Mirror that feedback for overlap mode before finalising selection on up.
+      const selection = {
+        x1: pointerDownState.origin.x,
+        y1: pointerDownState.origin.y,
+        x2: pointer.x,
+        y2: pointer.y,
+      };
+      const selectedElementIds: Record<string, true> = {};
+      for (const element of api.getSceneElements()) {
+        if (overlapsBoxSelection(element, selection)) {
+          selectedElementIds[element.id] = true;
+        }
+      }
+      api.updateScene({ appState: { selectedElementIds } });
+    },
+    [],
+  );
+
   const handleExcalidrawPointerUp = useCallback(
     (
       activeTool: { type: string },
       pointerDownState: PointerDownState,
     ) => {
+      boxSelectionPreviewRef.current = null;
       if (
         boxSelectionMode !== "overlap" ||
         activeTool.type !== "selection" ||
@@ -948,6 +993,8 @@ export function EditorView({
             initialData={initialData as never}
             onChange={handleSceneChange as never}
             excalidrawAPI={handleExcalidrawApi}
+            onPointerDown={handleExcalidrawPointerDown}
+            onPointerUpdate={handleExcalidrawPointerUpdate}
             onPointerUp={handleExcalidrawPointerUp}
             aiEnabled={false}
           />

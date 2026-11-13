@@ -541,14 +541,78 @@ textarea {
 }
 
 .update-install-button {
-  border-color: #1a73e8;
+  appearance: none;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #1259bd;
+  border-radius: 6px;
   background: #1a73e8;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%), 0 1px 1px rgb(18 89 189 / 24%);
   color: #ffffff;
+  font-weight: 650;
+  padding: 6px 10px;
+}
+
+.update-review-actions > button {
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d0d2d5;
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.update-review-actions > .update-install-button {
+  border-color: #1259bd;
 }
 
 .update-install-button:hover:not(:disabled) {
-  border-color: #1765cc;
+  border-color: #104b9f;
   background: #1765cc;
+}
+
+.update-install-button:focus-visible {
+  outline: 2px solid #79b1f7;
+  outline-offset: 2px;
+}
+
+.update-notice {
+  position: fixed;
+  z-index: 10000;
+  left: 12px;
+  bottom: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  max-width: calc(280px - 24px);
+  color: #676b73;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.update-notice-dot {
+  width: 6px;
+  height: 6px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: #1a73e8;
+  box-shadow: 0 0 0 3px #e8f1fd;
+}
+
+.update-notice-link {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #1765cc;
+  font-size: 11px;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
 }
 
 .update-status {

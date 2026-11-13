@@ -4,6 +4,7 @@ import { EditorView } from "./components/EditorView";
 import { LibraryView } from "./components/LibraryView";
 import { MermaidEditorView } from "./components/MermaidEditorView";
 import { NoteEditorView } from "./components/NoteEditorView";
+import { UpdateNotification } from "./components/UpdateNotification";
 import { designApi } from "./lib/designApi";
 import { prepareSceneForExcalidraw } from "./lib/excalidrawScene";
 import { normaliseMermaidContent } from "./lib/mermaidSource";
@@ -122,6 +123,7 @@ export default function App() {
           onOpenDesign={(project, fileName) => void handleOpenDesign(project, fileName)}
         />
       )}
+      <UpdateNotification />
     </AppShell>
   );
 }

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-13 — 0.3.11
+
+- Fixed the Windows build test collision by giving every test its own unique temporary library folder.
+- Refined the updater action with a clear bordered primary button and matched Cancel/Update action heights.
+- Check silently for signed updates shortly after DesignBuddy opens. When one is available, a subtle sidebar notice opens release notes and a user-initiated update; no download starts automatically.
+- Made **Selection: Overlap** preview touched elements while you drag the marquee, matching the immediate visual feedback of Wrap selection.
+
 ## 2026-11-13 — 0.3.10
 
 - Show **Saving…** as soon as a diagram edit is detected, then switch to **Saved** only after the verified autosave completes.
