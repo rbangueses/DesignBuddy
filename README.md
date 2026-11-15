@@ -1,171 +1,225 @@
 # DesignBuddy
 
-DesignBuddy is a local-first desktop project workspace powered by Excalidraw. It gives you a simple library for organizing diagram projects while keeping every file on your own machine.
+DesignBuddy is a local-first desktop workspace for diagrams, Mermaid flowcharts, and notes. It combines a project library with an editable Excalidraw canvas, while keeping your work as ordinary files on your own computer.
 
-## What It Does
+DesignBuddy runs on macOS and Windows. No account, cloud sync, or remote storage is required for normal use.
 
-- Create, rename, duplicate, and delete projects.
-- Create, rename, duplicate, and delete artifacts inside each project.
-- Use a responsive project workspace with searchable projects and filterable artifacts.
-- Draw with the full Excalidraw canvas experience.
-- Autosave designs locally as `.excalidraw` files.
+## Quick start
+
+1. [Install DesignBuddy](#install) for your platform.
+2. Create a project, then choose **New → Excalidraw**, **Mermaid**, or **Note**.
+3. Draw, write, import an existing file, or use **AI diagram** to start from a prompt.
+4. Optionally add an OpenAI API key or compatible LiteLLM virtual key in **Settings** to enable AI features.
+5. Use **Settings → Choose backup folder** to keep a copy of your library somewhere you control.
+
+Everything you create is saved locally. AI requests and reference images only leave your computer when you explicitly start an AI action.
+
+## What you can do
+
+### Organize work
+
+- Create, rename, duplicate, move, and delete projects and items.
+- Search projects and filter items in the active project.
+- Keep Excalidraw diagrams, Mermaid flowcharts, and rich-text notes together.
+- Use presentation mode to hide private projects during screen sharing.
+
+### Create diagrams and notes
+
+- Draw with the embedded Excalidraw editor and save editable `.excalidraw` files.
 - Create and edit Mermaid flowcharts as local `.mmd` files.
-- Create rich text notes as local `.bdnote` files.
-- Generate AI diagrams as editable Excalidraw scenes or Mermaid flowcharts, with configurable request timeouts and custom Excalidraw token limits for demanding prompts.
-- Attach a reference image to an AI prompt to recreate or extend a diagram as editable elements, or choose Clean architecture mode for structured, presentation-oriented architecture diagrams.
-- Modify existing Excalidraw and Mermaid diagrams with AI prompts.
-- Convert supported Mermaid flowcharts into editable Excalidraw designs.
+- Write rich-text notes as local `.bdnote` files.
+- Convert supported simple Mermaid flowcharts into editable Excalidraw scenes.
 - Insert ready-made Twilio architecture blocks into Excalidraw diagrams.
-- Import existing Excalidraw, Mermaid, or note files into a project.
-- Export individual artifacts from a single **Export** menu for backup, sharing, or moving between machines.
-- Export Excalidraw diagrams as `.excalidraw` files or basic `.drawio` files for diagrams.net or Lucidchart handoff.
-- Back up the full local library to a chosen folder, including Google Drive folders.
-- Receive a subtle in-app notice when a signed DesignBuddy update is available, then review and install it from the app. Every in-app update creates a separate local backup before installation.
-- Hide private projects during screen-sharing with presentation mode.
-- Mark selected projects as visible in presentation mode using the always-visible eye button, useful for reference architectures.
-- Search projects in the sidebar and filter artifacts inside a project.
-- Toggle Mermaid support on or off from settings.
-- Cancel dialogs with Escape.
-- Regenerate the app icon set from a reusable DesignBuddy DB source icon.
-- Build a macOS app bundle and Windows installers.
+
+### Use AI assistance
+
+- Generate editable Excalidraw scenes or Mermaid flowcharts from a prompt.
+- Modify an existing Excalidraw or Mermaid diagram with a follow-up prompt.
+- Attach a reference image to recreate or extend a diagram as editable elements.
+- Choose **Reference draft** for a flexible image-informed sketch or **Clean architecture** for a structured, presentation-oriented architecture layout.
+
+### Keep control of your data
+
+- Autosave locally, with visible save status and a retry action if saving fails.
+- Import existing Excalidraw, Mermaid, and DesignBuddy note files.
+- Export individual items in their native formats; export Excalidraw diagrams as basic `.drawio` files for diagrams.net or Lucidchart handoff.
+- Back up and restore the full local library from a folder you choose.
+- On macOS, receive signed in-app update notices and review release notes before installing.
 
 ## Screenshots
 
-### Project Library
+### Project library
 
 ![DesignBuddy project library](docs/screenshots/project-library.png)
 
-### Drawing Editor
+### Drawing editor
 
 ![DesignBuddy drawing editor](docs/screenshots/drawing-editor.png)
 
-### Notes Editor
+### Notes editor
 
 ![DesignBuddy notes editor](docs/screenshots/note-editor.png)
 
-### AI Diagram Prompt
+### AI diagram prompt
 
 ![DesignBuddy AI diagram prompt](docs/screenshots/ai-diagram-dialog.png)
 
-### AI Recommendation
+### AI modification
+
+![DesignBuddy AI modification](docs/screenshots/ai-modify.png)
+
+### AI recommendation
 
 ![DesignBuddy AI recommendation](docs/screenshots/ai-recommendation.png)
 
-### Mermaid Editor
+### Mermaid editor and conversion
 
 ![DesignBuddy Mermaid editor](docs/screenshots/mermaid-editor.png)
 
-### Mermaid Converted To Excalidraw
+![Mermaid converted to Excalidraw](docs/screenshots/mermaid-converted-excalidraw.png)
 
-![DesignBuddy Mermaid converted to Excalidraw](docs/screenshots/mermaid-converted-excalidraw.png)
-
-### Twilio Components And Shortcut Customization
+### Twilio components and settings
 
 ![DesignBuddy Twilio shortcut customization](docs/screenshots/twilio-shortcuts.png)
 
-### Settings And Backup
-
 ![DesignBuddy settings and backup](docs/screenshots/settings-backup.png)
 
-## Local Storage
+## Your files, backups, and privacy
 
-Design files are stored locally in your user Documents folder:
+### Local storage
+
+Your project items are stored in your user Documents folder:
 
 - macOS: `~/Documents/DesignBuddy/Designs`
 - Windows: `C:\Users\<you>\Documents\DesignBuddy\Designs`
 
-Each Excalidraw design is saved as a separate `.excalidraw` file. Mermaid flowcharts are saved as separate `.mmd` files. Notes are saved as separate `.bdnote` files. No cloud sync, account, or remote storage is required.
+Each diagram, Mermaid file, and note remains a separate, portable file:
 
-Project presentation visibility is also stored locally in each project folder using a small `.designbuddy-project.json` metadata file.
+- Excalidraw diagrams: `.excalidraw`
+- Mermaid flowcharts: `.mmd`
+- DesignBuddy notes: `.bdnote`
 
-## Local Backup
+DesignBuddy also keeps small, app-managed metadata files alongside relevant projects and diagrams. They preserve presentation visibility and a diagram's private Notes panel; they are not separate library items and are not included in a standard `.excalidraw` export.
 
-DesignBuddy can copy your local library to a backup folder from **Settings**. Choose a folder once, such as a Google Drive folder, then use **Back up now** whenever you want to copy the current projects and artifacts there.
+No cloud sync, account, or remote storage is required. The OpenAI-compatible API key and optional base URL are saved locally in the app settings on that computer.
 
-Back up copies the local library to the selected folder. Restore lets you choose individual artifacts from a backup folder before anything is written. When a selected artifact has the same project and filename as a local one, you can keep both (the default, using a conflict-safe copy name), replace the local file, or skip it. Restore never deletes local artifacts, ignores invalid backup files, and preserves local project visibility settings for existing projects.
+### Autosave and save problems
 
-## App Updates
+Edits autosave locally. The editor shows **Saving…** after a change and **Saved** only after the save has completed and been verified. If a save fails, the editor keeps the failure visible and offers **Retry save**.
 
-DesignBuddy checks quietly for signed updates shortly after it opens. When a new version is available, a small notice appears at the bottom of the sidebar. Select **Review** to see the release notes and choose whether to install it.
+For troubleshooting, DesignBuddy records save-failure metadata (not diagram content) in:
 
-You can also use **Settings → Check for updates** at any time. It always opens the release notes, whether or not a newer version is available. DesignBuddy never downloads or installs an update until you select **Update to _version_**.
+```text
+Documents/DesignBuddy/Logs/save-failures.jsonl
+```
 
-Before the installer downloads, DesignBuddy creates a dated, restorable copy of the current library in `Documents/DesignBuddy/Backups`. If that backup cannot be completed, the update does not start. Once installation is complete, DesignBuddy restarts automatically.
+### Backup and restore
 
-Updates are verified against DesignBuddy's embedded public signing key; a downloaded package that does not match that key is rejected. The first version with in-app updates must be installed normally. Thereafter, use this in-app flow for later signed releases.
+Use **Settings → Choose backup folder** to select a folder you control, such as a Google Drive folder, then choose **Back up now** to copy the library there.
 
-## Excalidraw Designs
+Restore lets you choose individual items from a backup before anything is written locally. If an item has the same project and filename as a local item, you can keep both—the default, using a conflict-safe copy name—replace the local item, or skip it. Restore never deletes local items, ignores invalid backup files, and preserves visibility settings for existing projects.
 
-Excalidraw designs are the default design type. They use the embedded Excalidraw editor, so you get the familiar sketch-style drawing workflow, keyboard shortcuts, library tools, and editable canvas elements.
+During a macOS in-app update, DesignBuddy also creates a dated backup in `Documents/DesignBuddy/Backups` before downloading the update. If that backup fails, the update does not start.
 
-DesignBuddy adds a local design-manager layer around Excalidraw:
+### Presentation mode
 
-- project folders in the sidebar
-- design search and filtering
-- rename and duplicate actions
-- local autosave
-- import and export
-- AI modification
-- Twilio component templates
-- export as `.excalidraw` or `.drawio` from the editor **Export** menu
+Presentation mode hides private projects from the sidebar while you screen share. Starting it automatically keeps the selected project visible; you can also use the eye button beside any project to mark a non-sensitive project as visible. Projects are private by default.
 
-## Notes
+The project list and item table adapt to narrower windows so names, metadata, and row actions remain usable.
 
-Notes are lightweight rich text artifacts stored beside diagrams in the selected project. They use a TipTap-powered visual editor, so formatting is applied directly rather than typed as Markdown syntax.
+## Working with diagrams, flowcharts, and notes
 
-The current note editor supports:
+### Excalidraw diagrams
 
-- paragraphs and headings
-- bold and italic text
-- bullet and numbered lists
-- block quotes and code blocks
-- undo and redo
-- local autosave
-- import and export as `.bdnote`
+Excalidraw is the default diagram type. DesignBuddy uses the embedded Excalidraw editor, so you retain the familiar sketch-style drawing workflow, editable canvas elements, library tools, and keyboard shortcuts.
 
-Notes are intentionally project-scoped. Use them for discovery notes, customer context, architecture rationale, meeting summaries, or anything that should live next to the diagrams it explains.
+DesignBuddy adds project organization, autosave, import and export, AI modification, Twilio templates, private diagram notes, and `.drawio` export around that canvas.
 
-Excalidraw diagrams also have an optional Notes panel for quick, diagram-specific context such as assumptions, open questions, and decisions. Press `N` while the canvas is focused to show or hide it. These notes are stored in a private DesignBuddy sidecar file: they follow the diagram when it is renamed, duplicated, backed up, or restored, but never appear as a library artifact or in a standard `.excalidraw` export.
+Press `N` while an Excalidraw canvas is focused to show or hide its private Notes panel. Use it for assumptions, open questions, and decisions that should follow the diagram without appearing as a separate library item.
 
-Use the editor or library row's **Duplicate** control to copy an artifact into the current or another project. Use **Move** to relocate it to another project. Both actions preserve a diagram's private Notes panel, refresh project counters, and never overwrite an existing artifact with the same name.
+### Mermaid flowcharts
 
-## Presentation Mode
+Mermaid flowcharts are stored locally as `.mmd` files. Their editor provides a source pane, live preview, AI modification, import and export, and conversion to Excalidraw for supported diagrams.
 
-The project sidebar includes a presentation mode toggle for screen-sharing. When enabled, private projects are hidden from the sidebar so their names are not visible and cannot be selected accidentally. Starting presentation mode automatically marks the currently selected project as visible, so it remains available while you navigate among other visible reference projects. Leaving presentation mode shows every project again without changing that visibility choice.
+Conversion intentionally focuses on simple `flowchart LR` and `flowchart TD` diagrams with basic nodes, arrows, chained arrows, and basic edge labels. Subgraphs, styling directives, class definitions, sequence diagrams, and advanced shapes are outside the current conversion scope.
 
-Each project has an always-visible eye button for its presentation visibility flag. Use it to keep non-sensitive projects, such as reference architecture folders, visible even while presentation mode is enabled. Projects are private by default unless you mark them as visible.
+Mermaid can be disabled in Settings if you prefer an Excalidraw-only workspace.
 
-Less frequent project actions live behind the project row `...` menu:
+### Notes
 
-- rename project
-- duplicate project
-- delete project
+Notes are lightweight rich-text items stored beside diagrams in the selected project. The TipTap-powered editor supports paragraphs and headings, bold and italic text, bulleted and numbered lists, block quotes, code blocks, undo and redo, autosave, and `.bdnote` import and export.
 
-The project list and artifact table are responsive. On wide screens the artifact list expands across the available project area; on narrower screens metadata and row actions wrap so the list stays usable.
+Use notes for discovery, customer context, architecture rationale, meeting summaries, or any context that should live beside the diagram it explains.
 
-## Keyboard Shortcuts
+### Moving and copying items
+
+Use **Duplicate** to copy an item into the current or another project. Use **Move** to relocate it. Both preserve a diagram's private Notes panel, refresh project counters, and never overwrite an existing item with the same name.
+
+## AI assistance
+
+AI features use your own OpenAI API key or a compatible LiteLLM virtual key. The default API base URL is OpenAI. For LiteLLM, enter its root URL or `/v1` URL; DesignBuddy uses the `/v1/responses` endpoint.
+
+From the library, choose **AI diagram** to create a new diagram. You can select:
+
+- **Excalidraw** for fully editable sketch-style diagrams
+- **Mermaid** for compact structured flowcharts
+- a model and quality level
+- an optional reference image
+- **Reference draft** or **Clean architecture** for image-informed Excalidraw output
+
+From an open diagram, use the AI action to modify the current Excalidraw scene or Mermaid source.
+
+AI requests are sent to OpenAI only when you explicitly use an AI action. Regular drawing, saving, import, export, backup, and project management work offline.
+
+AI diagnostics are optional and stored locally. Enable them in Settings only when troubleshooting; you can download diagnostics as JSON, and raw model responses are included only when you explicitly opt in.
+
+## Import and export
+
+Import a `.excalidraw`, `.mmd`, or `.bdnote` file into the selected project. If its name already exists, DesignBuddy creates a conflict-safe copy instead of overwriting the existing item.
+
+Use an item's editor **Export** menu for its full set of formats:
+
+- Excalidraw diagrams: `.excalidraw` or basic `.drawio`
+- Mermaid flowcharts: `.mmd`
+- Notes: `.bdnote`
+
+The project list also offers a quick export button for the item's native format. `.drawio` export is intended for practical handoff: common shapes, text, diamonds, ellipses, and arrows remain editable, while freehand strokes and advanced Excalidraw styling may not convert perfectly.
+
+## Updates
+
+### macOS
+
+After the initial installation, DesignBuddy checks quietly for signed updates shortly after it opens. A small sidebar notice appears when one is available; select **Review update** to read the release notes and choose whether to install it. You can also use **Settings → Check for updates** at any time.
+
+An update is never downloaded or installed until you select **Update to _version_**. Updates are verified against DesignBuddy's embedded public signing key. After a successful update, DesignBuddy restarts automatically.
+
+### Windows
+
+Windows installers are available through the Windows GitHub Actions build artifact. Signed in-app updating is currently available on macOS only, so Windows users should install newer builds from the artifact until Windows updater releases are published.
+
+## Keyboard shortcuts
 
 In the project library:
 
-- `1` creates a new note.
-- `2` creates a new Excalidraw diagram.
-- `3` creates a new Mermaid diagram, when Mermaid is enabled.
-- `Escape` cancels open dialogs.
+- `1` creates a note.
+- `2` creates an Excalidraw diagram.
+- `3` creates a Mermaid diagram when Mermaid is enabled.
+- `Escape` cancels an open dialog.
 
 In the note editor:
 
 - `Cmd+B` / `Ctrl+B` toggles bold.
 - `Cmd+I` / `Ctrl+I` toggles italic.
 
-Inside Excalidraw, the standard Excalidraw shortcuts still apply, including tool shortcuts for selection, shapes, drawing, text, and pan/hand mode.
+Inside Excalidraw, its standard shortcuts remain available for selection, shapes, drawing, text, and pan/hand mode.
 
-For Twilio component templates, press `§` to open the picker. `Cmd+Shift+T` is also available as a keyboard-layout-friendly fallback. Once the picker is open, press the key badge shown on a component to add it. Use **Customize shortcuts** in the picker to change the bindings.
+For Twilio templates, press `§` to open the picker. `Cmd+Shift+T` is a keyboard-layout-friendly alternative. Once open, press a component's shown key badge to add it. Choose **Customize shortcuts** in the picker to change bindings.
 
-To insert a component directly from an Excalidraw canvas, hold `Shift` and press that component's key badge. The Shift modifier leaves Excalidraw's usual unmodified shortcuts untouched.
+To insert a component directly from the Excalidraw canvas, hold `Shift` and press its key badge. The Shift modifier leaves Excalidraw's usual unmodified shortcuts untouched.
 
-## Twilio Component Templates
+## Twilio component templates
 
-The Excalidraw editor includes a large Twilio components picker for quickly adding architecture blocks. Components are grouped by product area and each displays its current keyboard binding:
+The Excalidraw editor includes a component picker for common Twilio architecture blocks. Components are grouped by product area and show their current keyboard binding:
 
 - Communications: Twilio, Programmable Messaging, Programmable Voice, SMS, WhatsApp, Email API, Recording, Flex
 - Trust & Identity: Verify, Lookup
@@ -173,71 +227,106 @@ The Excalidraw editor includes a large Twilio components picker for quickly addi
 - Builder Tools: Functions, Assets, Studio, TaskRouter, Sync, Interconnect, Proxy, 3rd Party API
 - Data: Segment CDP, Connections, Profiles, Engage, Knowledge, Event Streams
 
-Twilio-owned blocks use Twilio red. External dependencies such as `3rd Party API` use a separate yellow style.
+Twilio-owned blocks use Twilio red. External dependencies, such as `3rd Party API`, use a separate yellow style.
 
-## Mermaid Flowcharts
+## Install
 
-DesignBuddy can store Mermaid flowcharts locally as `.mmd` files beside Excalidraw designs. Mermaid mode is useful for structured diagrams and lower-cost AI generation.
+You do not need developer tools to run a downloaded build.
 
-Mermaid designs have a split editor:
+### macOS
 
-- source editor on the left
-- live preview on the right
-- AI modify support
-- import as `.mmd`
-- export from the editor **Export** menu as Mermaid source `.mmd`
-- conversion into Excalidraw when the diagram uses the supported simple flowchart subset
+Download the `DesignBuddy-macos` artifact from GitHub Actions. GitHub downloads a ZIP file; unzip it, open the included `.dmg`, and drag `DesignBuddy.app` into Applications.
 
-Supported Mermaid-to-Excalidraw conversion currently focuses on simple `flowchart LR` and `flowchart TD` diagrams with basic nodes and arrows. Chained arrows and basic edge labels are supported, but complex Mermaid features such as subgraphs, styling directives, class definitions, sequence diagrams, and advanced shapes are intentionally outside the current conversion scope.
+If macOS warns that Apple could not verify the app, right-click the app in Applications and choose **Open**. This can happen because the app is ad-hoc signed but not notarized with an Apple Developer ID yet.
 
-Mermaid can be disabled from AI settings if you want a simpler Excalidraw-only experience.
+### Windows
 
-## AI Diagrams
+Download the `DesignBuddy-windows` artifact from GitHub Actions. Open its `nsis` folder and run the `.exe` installer. The artifact also includes an `msi` folder for environments that prefer Windows Installer packages.
 
-AI features use your own OpenAI API key, or a compatible LiteLLM virtual key. The key and optional API base URL are stored locally in the app settings on your machine. The default base URL is OpenAI; for a LiteLLM proxy, enter its root URL or `/v1` URL and DesignBuddy will use its `/v1/responses` endpoint.
+If Windows SmartScreen warns about the installer, choose **More info → Run anyway**. This can happen because the installer is not code-signed yet.
 
-From the library, you can generate a new diagram from a prompt and choose:
+## Migrating from BanguesesDraw
 
-- Excalidraw output for fully editable sketch-style diagrams
-- Mermaid output for cheaper, more compact structured flowcharts
-- model and quality level
-- an optional reference image to recreate or extend as editable elements
-- **Reference draft** for a flexible image-informed Excalidraw draft, or **Clean architecture** for a structured architecture layout using DesignBuddy's component library where applicable
+DesignBuddy is the renamed version of BanguesesDraw. On first launch, it looks for an existing local library at `Documents/BanguesesDraw/Designs` and moves it to `Documents/DesignBuddy/Designs` when the new folder does not already exist.
 
-From an existing design, you can also ask AI to modify the current diagram. Excalidraw modification updates the editable scene. Mermaid modification updates the Mermaid source.
+Existing Excalidraw scenes, Mermaid diagrams, notes, AI settings, and backup settings remain compatible. Some internal markers and local settings keys keep the original `banguesesdraw` identifier so older artifacts continue to open cleanly.
 
-AI requests are sent to OpenAI only when you explicitly use an AI action. Regular drawing, local storage, import, export, and project management do not require a network connection.
+## Developer notes
 
-AI diagnostics are optional and stored locally. Enable them from AI settings when troubleshooting a request; you can download diagnostics as JSON, with raw model responses included only when you explicitly enable that export option.
+### Prerequisites
 
-## Migration From BanguesesDraw
+You only need these tools to run from source or build locally:
 
-DesignBuddy is the renamed version of BanguesesDraw. On first launch, the app looks for an existing local library at `~/Documents/BanguesesDraw/Designs` and moves it to `~/Documents/DesignBuddy/Designs` if the new folder does not already exist.
+- Node.js 22 or newer
+- npm
+- Rust stable, with Cargo available on your terminal `PATH`
+- Tauri system dependencies for your OS
 
-Existing Excalidraw scenes, Mermaid diagrams, notes, AI settings, and backup settings remain compatible. Some internal file markers and local settings keys intentionally keep the original `banguesesdraw` identifier so older artifacts continue to open cleanly.
+Check Rust before running Tauri commands:
 
-## Import And Export
+```bash
+cargo --version
+rustc --version
+```
 
-DesignBuddy supports single-artifact import and export:
+If Rust is unavailable, install it with rustup and restart your terminal:
 
-- import `.excalidraw` files into the selected project
-- import `.mmd` Mermaid files into the selected project
-- import `.bdnote` note files into the selected project
-- export an individual artifact from its editor **Export** menu
-- export Excalidraw designs as `.excalidraw`
-- export Mermaid diagrams as `.mmd`
-- export notes as `.bdnote`
-- export an Excalidraw diagram as a basic `.drawio` file for diagrams.net or Lucidchart import
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+```
 
-The project list also keeps a quick row-level export button for the artifact's native file format. Advanced or alternate formats are available from the editor **Export** menu.
+On macOS, install Xcode Command Line Tools if prompted:
 
-If an imported artifact name already exists, DesignBuddy creates a conflict-safe copy name instead of overwriting the existing file.
+```bash
+xcode-select --install
+```
 
-The draw.io export is a practical first pass intended for handoff: it preserves common editable shapes, text, diamonds, ellipses, and arrows. Freehand strokes and advanced Excalidraw-specific styling may not convert perfectly.
+On Windows, install Rust with its default MSVC toolchain. You may also need Microsoft Visual Studio Build Tools with the **Desktop development with C++** workload.
 
-## App Icon
+### Build from source
 
-The app icon is generated from `src-tauri/icons/source-icon.png` and the reusable generator script in `scripts/generate-designbuddy-icon.mjs`. After changing the source icon, run:
+```bash
+git clone https://github.com/rbangueses/DesignBuddy.git
+cd DesignBuddy
+npm ci
+npm run tauri:dev
+```
+
+Build native bundles and installers:
+
+```bash
+npm exec tauri build
+```
+
+On macOS, build only the app bundle:
+
+```bash
+npm exec -- tauri build --bundles app
+```
+
+The local macOS app bundle is created in `src-tauri/target/release/bundle/macos/`. A local build also creates a DMG in `src-tauri/target/release/bundle/dmg/`.
+
+Run the test suites:
+
+```bash
+npm run test:run
+cargo test --manifest-path src-tauri/Cargo.toml
+```
+
+### GitHub Actions builds
+
+The repository includes manually runnable GitHub Actions workflows for macOS and Windows builds:
+
+```text
+.github/workflows/macos-build.yml
+.github/workflows/windows-build.yml
+```
+
+In GitHub, open **Actions**, choose **macOS Build** or **Windows Build**, select **Run workflow**, and download `DesignBuddy-macos` or `DesignBuddy-windows` when it finishes.
+
+### App icon
+
+The app icon comes from `src-tauri/icons/source-icon.png`. After changing it, regenerate the icon set:
 
 ```bash
 node scripts/generate-designbuddy-icon.mjs
@@ -246,140 +335,10 @@ npm exec tauri icon -- src-tauri/icons/source-icon.png -o src-tauri/icons
 
 The Tauri build script watches the key icon files so `npm run tauri:dev` refreshes icon resources after icon changes.
 
-## Prerequisites
-
-You do not need developer tools to run a downloaded GitHub Actions artifact. You only need these prerequisites if you want to clone the repo, run the app from source, or build it locally.
-
-Required for local development:
-
-- Node.js 22 or newer
-- npm
-- Rust stable, installed with Cargo available on your terminal `PATH`
-- Tauri system dependencies for your OS
-
-Check that Rust is available before running Tauri commands:
-
-```bash
-cargo --version
-rustc --version
-```
-
-If those commands fail with `command not found` or `No such file or directory`, install Rust from rustup and restart your terminal:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-On macOS, also install Xcode Command Line Tools if prompted:
-
-```bash
-xcode-select --install
-```
-
-On Windows, install Rust from rustup and use the default MSVC toolchain. You may also need Microsoft Visual Studio Build Tools with the **Desktop development with C++** workload.
-
-## Install
-
-### macOS
-
-Download the `DesignBuddy-macos` artifact from GitHub Actions. GitHub downloads it as a ZIP file, so unzip it first. The unzipped folder contains a `.dmg` file. Open the DMG, then drag `DesignBuddy.app` into Applications.
-
-If macOS warns that Apple could not verify the app is free of malware, right-click the app in Applications and choose **Open**. This can happen because the app is ad-hoc signed but not notarized with an Apple Developer ID yet.
-
-### Windows
-
-Download the Windows build artifact from GitHub Actions and open the `nsis` folder. Run the `.exe` installer.
-
-The artifact also includes an `msi` folder. The MSI installer is useful for Windows environments that prefer Windows Installer packages.
-
-If Windows SmartScreen warns about the installer, choose **More info** and **Run anyway**. This can happen because the app is not code-signed yet.
-
-## Build From Source
-
-Before building from source, complete the prerequisites above.
-
-Clone the repository:
-
-```bash
-git clone https://github.com/rbangueses/DesignBuddy.git
-cd DesignBuddy
-```
-
-Install dependencies:
-
-```bash
-npm ci
-```
-
-Run the app in development:
-
-```bash
-npm run tauri:dev
-```
-
-Build native app bundles and installers:
-
-```bash
-npm exec tauri build
-```
-
-On macOS, you can also build only the app bundle:
-
-```bash
-npm exec -- tauri build --bundles app
-```
-
-The macOS app bundle is created under:
-
-```text
-src-tauri/target/release/bundle/macos/
-```
-
-The default local macOS build also creates a DMG under:
-
-```text
-src-tauri/target/release/bundle/dmg/
-```
-
-Open the app bundle folder:
-
-```bash
-open src-tauri/target/release/bundle/macos
-```
-
-Then drag DesignBuddy into Applications and launch it from Applications. A local build usually avoids the downloaded-artifact Gatekeeper flow, but if macOS still warns, right-click the app and choose **Open**.
-
-Run tests:
-
-```bash
-npm run test:run
-cargo test --manifest-path src-tauri/Cargo.toml
-```
-
-## Installer Builds With GitHub Actions
-
-This repo includes GitHub Actions workflows for a macOS app bundle and Windows installers:
-
-```text
-.github/workflows/macos-build.yml
-.github/workflows/windows-build.yml
-```
-
-The workflows run on pushes to `main` and can also be started manually from GitHub:
-
-1. Open the repo on GitHub.
-2. Go to **Actions**.
-3. Select **macOS Build** or **Windows Build**.
-4. Click **Run workflow**.
-5. Download `DesignBuddy-macos` or `DesignBuddy-windows` when the run finishes.
-6. For macOS, unzip the downloaded artifact and open the `.dmg` inside it. For Windows, unzip the artifact and use the installer in the `nsis` folder.
-
-## Tech Stack
+### Tech stack
 
 - Tauri 2
-- React
-- TypeScript
-- Vite
+- React, TypeScript, and Vite
 - Excalidraw
 - Mermaid
 - TipTap
@@ -387,6 +346,4 @@ The workflows run on pushes to `main` and can also be started manually from GitH
 
 ## License
 
-Source-available, all rights reserved. The source code may be viewed, but may
-not be copied, modified, distributed, sublicensed, sold, hosted as a service, or
-otherwise used without prior written permission. See [LICENSE](LICENSE).
+Source-available, all rights reserved. The source code may be viewed, but may not be copied, modified, distributed, sublicensed, sold, hosted as a service, or otherwise used without prior written permission. See [LICENSE](LICENSE).

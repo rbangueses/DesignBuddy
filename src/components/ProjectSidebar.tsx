@@ -72,19 +72,19 @@ export function ProjectSidebar({
         <div className="sidebar-header-actions">
           <button
             type="button"
-            className={`icon-button ${presentationMode ? "privacy-active" : ""}`}
+            className={`icon-button library-tooltip library-tooltip--sidebar ${presentationMode ? "privacy-active" : ""}`}
             onClick={onTogglePresentationMode}
             aria-label={presentationModeTitle}
-            title={presentationModeTooltip}
+            data-tooltip={presentationModeTooltip}
           >
             {presentationMode ? <Eye size={18} /> : <EyeOff size={18} />}
           </button>
           <button
             type="button"
-            className="icon-button"
+            className="icon-button library-tooltip library-tooltip--sidebar"
             onClick={onCreateProject}
             aria-label="Create project"
-            title="Create project"
+            data-tooltip="Create a project"
           >
             <FolderPlus size={18} />
           </button>
@@ -125,7 +125,7 @@ export function ProjectSidebar({
             </button>
             <button
               type="button"
-              className="icon-button row-action-button project-visibility-button"
+              className="icon-button row-action-button project-visibility-button library-tooltip library-tooltip--sidebar"
               onClick={() =>
                 onSetProjectVisibility(
                   project.name,
@@ -137,7 +137,7 @@ export function ProjectSidebar({
                   ? `Hide ${project.name} in presentation mode`
                   : `Show ${project.name} in presentation mode`
               }
-              title={
+              data-tooltip={
                 isVisibleInPresentationMode(project)
                   ? `Hide ${project.name} in presentation mode`
                   : `Show ${project.name} in presentation mode`
@@ -152,7 +152,7 @@ export function ProjectSidebar({
             <div className="project-actions-menu-wrap">
               <button
                 type="button"
-                className="icon-button row-action-button"
+                className="icon-button row-action-button library-tooltip library-tooltip--sidebar"
                 onClick={() =>
                   setOpenProjectActions((openProject) =>
                     openProject === project.name ? null : project.name,
@@ -161,7 +161,7 @@ export function ProjectSidebar({
                 aria-label={`Project actions for ${project.name}`}
                 aria-haspopup="menu"
                 aria-expanded={openProjectActions === project.name}
-                title={`Project actions for ${project.name}`}
+                data-tooltip={`Project actions for ${project.name}`}
               >
                 <MoreHorizontal size={16} />
               </button>

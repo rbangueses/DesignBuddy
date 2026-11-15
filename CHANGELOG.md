@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-11-15 — 0.3.12
+
+- Added a quiet, clickable version label to the lower-left corner of the project library. It becomes an update notice when a newer signed version is available and opens the same release-notes flow.
+- Fixed Windows file saves and CI validation by reopening an atomically saved file with the write access Windows requires before flushing it to disk.
+- Made the Cancel and Update actions in the release-notes dialog an exact matched height across platforms.
+- Standardized the project-toolbar controls so Settings, Import, AI diagram, and New align to the same height.
+- Replaced browser-native library tooltips with the same concise, keyboard-accessible tooltip treatment used in the diagram editor.
+- Reworked the README around a quick start, grouped capabilities, clearer data and privacy guidance, and separate user and developer paths.
+
 ## 2026-11-13 — 0.3.11
 
 - Fixed the Windows build test collision by giving every test its own unique temporary library folder.

@@ -94,18 +94,19 @@ export function DesignList({
           <div className="toolbar-action-group">
             <button
               type="button"
-              className="icon-button"
+              className="icon-button library-tooltip"
               onClick={onConfigureAi}
               aria-label="Settings"
-              title="Settings"
+              data-tooltip="Configure AI, backups, diagnostics, and updates"
             >
               <Settings size={16} />
             </button>
             <button
               type="button"
+              className="library-tooltip"
               onClick={onImportDesign}
               aria-label="Import design"
-              title="Import design"
+              data-tooltip="Import an existing diagram or note"
             >
               <Upload size={16} />
               Import
@@ -201,9 +202,9 @@ export function DesignList({
               <div className="row-actions">
                 <button
                   type="button"
-                  className="icon-button row-action-button"
+                  className="icon-button row-action-button library-tooltip"
                   aria-label={`Export ${design.name}`}
-                  title={`Export ${design.name}`}
+                  data-tooltip={`Export ${design.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onExportDesign(design);
@@ -213,9 +214,9 @@ export function DesignList({
                 </button>
                 <button
                   type="button"
-                  className="icon-button row-action-button"
+                  className="icon-button row-action-button library-tooltip"
                   aria-label={`Rename ${design.name}`}
-                  title={`Rename ${design.name}`}
+                  data-tooltip={`Rename ${design.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onRenameDesign(design);
@@ -225,9 +226,9 @@ export function DesignList({
                 </button>
                 <button
                   type="button"
-                  className="icon-button row-action-button"
+                  className="icon-button row-action-button library-tooltip"
                   aria-label={`Duplicate ${design.name}`}
-                  title={`Duplicate ${design.name}`}
+                  data-tooltip={`Duplicate ${design.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onDuplicateDesign(design);
@@ -237,9 +238,9 @@ export function DesignList({
                 </button>
                 <button
                   type="button"
-                  className="icon-button row-action-button"
+                  className="icon-button row-action-button library-tooltip"
                   aria-label={`Move ${design.name}`}
-                  title={`Move ${design.name}`}
+                  data-tooltip={`Move ${design.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onMoveDesign?.(design);
@@ -249,9 +250,9 @@ export function DesignList({
                 </button>
                 <button
                   type="button"
-                  className="icon-button row-action-button"
+                  className="icon-button row-action-button library-tooltip"
                   aria-label={`Delete ${design.name}`}
-                  title={`Delete ${design.name}`}
+                  data-tooltip={`Delete ${design.name}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onDeleteDesign(design);

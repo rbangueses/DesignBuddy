@@ -101,6 +101,13 @@ textarea {
   white-space: nowrap;
 }
 
+/* The project toolbar combines icon-only, secondary, and primary actions. */
+.design-header-actions > .toolbar-action-group > button:not(.icon-button) {
+  box-sizing: border-box;
+  height: 36px;
+  padding: 0 10px;
+}
+
 .primary-button {
   border: 1px solid #202124;
   border-radius: 6px;
@@ -542,7 +549,8 @@ textarea {
 
 .update-install-button {
   appearance: none;
-  min-height: 34px;
+  box-sizing: border-box;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -552,16 +560,19 @@ textarea {
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / 16%), 0 1px 1px rgb(18 89 189 / 24%);
   color: #ffffff;
   font-weight: 650;
+  line-height: 1;
   padding: 6px 10px;
 }
 
 .update-review-actions > button {
-  min-height: 34px;
+  box-sizing: border-box;
+  height: 34px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border: 1px solid #d0d2d5;
   border-radius: 6px;
+  line-height: 1;
   padding: 6px 10px;
 }
 
@@ -579,21 +590,21 @@ textarea {
   outline-offset: 2px;
 }
 
-.update-notice {
+.app-version {
   position: fixed;
   z-index: 10000;
   left: 12px;
   bottom: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   max-width: calc(280px - 24px);
   color: #676b73;
   font-size: 11px;
   line-height: 1.35;
 }
 
-.update-notice-dot {
+.app-version-dot {
   width: 6px;
   height: 6px;
   flex: 0 0 auto;
@@ -602,17 +613,35 @@ textarea {
   box-shadow: 0 0 0 3px #e8f1fd;
 }
 
-.update-notice-link {
+.app-version-control {
   appearance: none;
   border: 0;
   background: transparent;
   padding: 0;
-  color: #1765cc;
+  color: inherit;
   font-size: 11px;
-  font-weight: 650;
+  font-weight: 500;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-version-control:hover,
+.app-version-control:focus-visible {
+  color: #1765cc;
   text-decoration: underline;
   text-underline-offset: 2px;
-  cursor: pointer;
+}
+
+.app-version-control:focus-visible {
+  outline: 2px solid #79b1f7;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.app-version-update-available .app-version-control {
+  color: #1765cc;
+  font-weight: 650;
 }
 
 .update-status {
@@ -1276,11 +1305,13 @@ textarea {
 }
 
 .editor-header-tooltip,
+.library-tooltip,
 .selection-mode-toggle {
   position: relative;
 }
 
 .editor-header-tooltip::after,
+.library-tooltip::after,
 .selection-mode-toggle::after {
   position: absolute;
   z-index: 30;
@@ -1303,6 +1334,8 @@ textarea {
 
 .editor-header-tooltip:hover::after,
 .editor-header-tooltip:focus-visible::after,
+.library-tooltip:hover::after,
+.library-tooltip:focus-visible::after,
 .selection-mode-toggle:hover::after,
 .selection-mode-toggle:focus-visible::after {
   opacity: 1;
@@ -1310,6 +1343,12 @@ textarea {
 }
 
 .editor-header-tooltip--start::after {
+  right: auto;
+  left: 0;
+}
+
+/* Sidebar controls sit close to the app edge, so open their tooltip inward. */
+.library-tooltip--sidebar::after {
   right: auto;
   left: 0;
 }

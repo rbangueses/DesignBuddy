@@ -68,7 +68,7 @@ describe("ProjectSidebar", () => {
 
     expect(onTogglePresentationMode).toHaveBeenCalledTimes(1);
     expect(screen.getByRole("button", { name: "Start presentation mode" })).toHaveAttribute(
-      "title",
+      "data-tooltip",
       "Start presentation mode. Press H to focus the selected project or show all projects.",
     );
 

@@ -123,7 +123,7 @@ export default function App() {
           onOpenDesign={(project, fileName) => void handleOpenDesign(project, fileName)}
         />
       )}
-      <UpdateNotification />
+      <UpdateNotification visible={!openDesign} />
     </AppShell>
   );
 }

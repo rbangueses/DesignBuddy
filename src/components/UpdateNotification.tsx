@@ -1,10 +1,11 @@
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useEffect, useRef, useState } from "react";
+import packageJson from "../../package.json";
 import { designApi } from "../lib/designApi";
 import { UpdateReviewDialog } from "./UpdateReviewDialog";
 
 /** Checks quietly once per launch; update installation always remains user initiated. */
-export function UpdateNotification() {
+export function UpdateNotification({ visible = true }: { visible?: boolean }) {
   const [availableUpdate, setAvailableUpdate] = useState<Update | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
@@ -91,23 +92,34 @@ export function UpdateNotification() {
     }
   }
 
-  if (!availableUpdate) {
+  if (!visible) {
     return null;
   }
 
+  const label = availableUpdate
+    ? `Update ${availableUpdate.version} available`
+    : `DesignBuddy ${packageJson.version}`;
+
   return (
     <>
-      <aside className="update-notice" role="status" aria-live="polite">
-        <span aria-hidden="true" className="update-notice-dot" />
-        <span>Update {availableUpdate.version} available.</span>
-        <button type="button" className="update-notice-link" onClick={() => setIsReviewOpen(true)}>
-          Review
+      <aside
+        className={`app-version ${availableUpdate ? "app-version-update-available" : ""}`}
+        aria-live="polite"
+      >
+        {availableUpdate ? <span aria-hidden="true" className="app-version-dot" /> : null}
+        <button
+          type="button"
+          className="app-version-control"
+          onClick={() => setIsReviewOpen(true)}
+          aria-label={availableUpdate ? `${label}. Review update.` : `View release notes for ${label}.`}
+        >
+          {label}
         </button>
       </aside>
       {isReviewOpen ? (
         <UpdateReviewDialog
           update={availableUpdate}
-          releaseNotes={availableUpdate.body}
+          releaseNotes={availableUpdate?.body}
           status={status}
           isInstalling={isInstalling}
           onCancel={dismiss}
