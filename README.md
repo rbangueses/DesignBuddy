@@ -20,7 +20,7 @@ DesignBuddy is a local-first desktop project workspace powered by Excalidraw. It
 - Export individual artifacts from a single **Export** menu for backup, sharing, or moving between machines.
 - Export Excalidraw diagrams as `.excalidraw` files or basic `.drawio` files for diagrams.net or Lucidchart handoff.
 - Back up the full local library to a chosen folder, including Google Drive folders.
-- Check for, verify, and install signed DesignBuddy updates from Settings. Every in-app update creates a separate local backup before installation.
+- Receive a subtle in-app notice when a signed DesignBuddy update is available, then review and install it from the app. Every in-app update creates a separate local backup before installation.
 - Hide private projects during screen-sharing with presentation mode.
 - Mark selected projects as visible in presentation mode using the always-visible eye button, useful for reference architectures.
 - Search projects in the sidebar and filter artifacts inside a project.
@@ -86,11 +86,13 @@ Back up copies the local library to the selected folder. Restore lets you choose
 
 ## App Updates
 
-Use **Settings → Check for updates** to look for a newer signed DesignBuddy release. If one is available, review its release notes and select **Update to _version_**. Before the installer downloads, DesignBuddy creates a full local copy of the current library in `Documents/DesignBuddy/Backups`. If that backup cannot be completed, the update does not start.
+DesignBuddy checks quietly for signed updates shortly after it opens. When a new version is available, a small notice appears at the bottom of the sidebar. Select **Review** to see the release notes and choose whether to install it.
 
-On macOS, quit and reopen DesignBuddy after installation to run the new version. Updates are verified against DesignBuddy's embedded public signing key; a downloaded package that does not match that key is rejected.
+You can also use **Settings → Check for updates** at any time. It always opens the release notes, whether or not a newer version is available. DesignBuddy never downloads or installs an update until you select **Update to _version_**.
 
-The first version with in-app updates must be installed normally. Thereafter, use this Settings flow for later signed releases.
+Before the installer downloads, DesignBuddy creates a dated, restorable copy of the current library in `Documents/DesignBuddy/Backups`. If that backup cannot be completed, the update does not start. Once installation is complete, DesignBuddy restarts automatically.
+
+Updates are verified against DesignBuddy's embedded public signing key; a downloaded package that does not match that key is rejected. The first version with in-app updates must be installed normally. Thereafter, use this in-app flow for later signed releases.
 
 ## Excalidraw Designs
 
