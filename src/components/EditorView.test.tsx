@@ -976,6 +976,8 @@ describe("EditorView", () => {
   });
 
   it("inserts a component directly on the canvas with Shift plus its binding", async () => {
+    const user = userEvent.setup();
+
     vi.mocked(designApi.readDesign).mockResolvedValue({
       project: "App",
       name: "Flow",
@@ -994,7 +996,7 @@ describe("EditorView", () => {
     );
 
     await screen.findByText("Mock Excalidraw (0)");
-    fireEvent.keyDown(window, { key: "V", shiftKey: true });
+    await user.keyboard("{Shift>}v{/Shift}");
 
     expect(await screen.findByText("Mock Excalidraw (2)")).toBeVisible();
   });

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-16 — 0.3.13
+
+- Stabilized the direct Twilio-component keyboard shortcut test so signed macOS release builds wait for the editor keyboard handler before exercising it.
+
 ## 2026-11-15 — 0.3.12
 
 - Added a quiet, clickable version label to the lower-left corner of the project library. It becomes an update notice when a newer signed version is available and opens the same release-notes flow.
