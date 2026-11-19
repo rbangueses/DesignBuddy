@@ -507,6 +507,15 @@ pub fn create_project(root: &Path, name: &str) -> Result<ProjectSummary, DesignE
     project_summary(&path)
 }
 
+pub fn project_directory(root: &Path, name: &str) -> Result<PathBuf, DesignError> {
+    let path = project_path(root, name)?;
+    if !path.is_dir() {
+        return Err(DesignError::NotFound(name.to_string()));
+    }
+
+    Ok(path)
+}
+
 pub fn rename_project(
     root: &Path,
     old_name: &str,
@@ -1196,6 +1205,27 @@ mod tests {
 
         let projects = list_projects(&root).unwrap();
         assert_eq!(projects, vec![project]);
+
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn resolves_existing_project_directories_without_accepting_paths() {
+        let root = test_root("project-directory");
+        let project = create_project(&root, "Client Sketches").unwrap();
+
+        assert_eq!(
+            project_directory(&root, &project.name).unwrap(),
+            root.join("Client Sketches"),
+        );
+        assert!(matches!(
+            project_directory(&root, "../outside"),
+            Err(DesignError::InvalidName(_))
+        ));
+        assert!(matches!(
+            project_directory(&root, "Missing"),
+            Err(DesignError::NotFound(_))
+        ));
 
         fs::remove_dir_all(root).unwrap();
     }

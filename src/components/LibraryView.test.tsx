@@ -56,6 +56,7 @@ function makeLibraryState() {
     renameProject: vi.fn(),
     duplicateProject: vi.fn(),
     deleteProject: vi.fn(),
+    openProjectFolder: vi.fn(),
     setProjectVisibility: vi.fn().mockResolvedValue({
       name: "App",
       designCount: 1,

@@ -35,6 +35,7 @@ describe("ProjectSidebar", () => {
         onRenameProject={vi.fn()}
         onDuplicateProject={vi.fn()}
         onDeleteProject={vi.fn()}
+        onOpenProjectFolder={vi.fn()}
       />,
     );
 
@@ -61,6 +62,7 @@ describe("ProjectSidebar", () => {
         onRenameProject={vi.fn()}
         onDuplicateProject={vi.fn()}
         onDeleteProject={vi.fn()}
+        onOpenProjectFolder={vi.fn()}
       />,
     );
 
@@ -106,6 +108,7 @@ describe("ProjectSidebar", () => {
         onRenameProject={vi.fn()}
         onDuplicateProject={vi.fn()}
         onDeleteProject={vi.fn()}
+        onOpenProjectFolder={vi.fn()}
       />,
     );
 
@@ -114,5 +117,31 @@ describe("ProjectSidebar", () => {
     expect(screen.queryByText("Customer A")).not.toBeInTheDocument();
     expect(screen.getByText("Reference Architectures")).toBeVisible();
     expect(screen.queryByText("Customer B")).not.toBeInTheDocument();
+  });
+
+  it("opens a project's local folder from its actions menu", async () => {
+    const user = userEvent.setup();
+    const onOpenProjectFolder = vi.fn();
+
+    render(
+      <ProjectSidebar
+        projects={projects}
+        selectedProject="Customer A"
+        presentationMode={false}
+        onTogglePresentationMode={vi.fn()}
+        onSetProjectVisibility={vi.fn()}
+        onSelectProject={vi.fn()}
+        onCreateProject={vi.fn()}
+        onRenameProject={vi.fn()}
+        onDuplicateProject={vi.fn()}
+        onDeleteProject={vi.fn()}
+        onOpenProjectFolder={onOpenProjectFolder}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Project actions for Customer A" }));
+    await user.click(screen.getByRole("menuitem", { name: "Open folder" }));
+
+    expect(onOpenProjectFolder).toHaveBeenCalledWith("Customer A");
   });
 });

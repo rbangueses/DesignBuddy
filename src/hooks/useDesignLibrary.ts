@@ -24,6 +24,7 @@ type UseDesignLibraryResult = {
   renameProject: (oldName: string, newName: string) => Promise<ProjectSummary>;
   duplicateProject: (sourceName: string, targetName: string) => Promise<ProjectSummary>;
   deleteProject: (name: string) => Promise<void>;
+  openProjectFolder: (name: string) => Promise<void>;
   setProjectVisibility: (
     name: string,
     visibleInPresentationMode: boolean,
@@ -256,6 +257,10 @@ export function useDesignLibrary(initialSelectedProject?: string | null): UseDes
         }
 
         await loadProjects(preferredProject);
+      }),
+    openProjectFolder: (name) =>
+      runProjectAction(async () => {
+        await designApi.openProjectFolder(name);
       }),
     setProjectVisibility: (name, visibleInPresentationMode) =>
       runProjectAction(async () => {

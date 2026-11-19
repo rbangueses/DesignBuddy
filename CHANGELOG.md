@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-11-19 — 0.3.14
+
+- Added **Open folder** to each project's actions menu. It opens that project's local directory directly in Finder or File Explorer.
+
 ## 2026-11-16 — 0.3.13
 
 - Stabilized the direct Twilio-component keyboard shortcut test so signed macOS release builds wait for the editor keyboard handler before exercising it.

@@ -211,6 +211,9 @@ export function LibraryView({
           setPendingAction({ type: "duplicate-project", project })
         }
         onDeleteProject={(project) => setPendingAction({ type: "delete-project", project })}
+        onOpenProjectFolder={(project) => {
+          void library.openProjectFolder(project).catch(() => undefined);
+        }}
       />
       <main className="library-main">
         {openError ? <div className="error-banner">{openError}</div> : null}

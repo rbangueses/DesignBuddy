@@ -22,6 +22,7 @@ export const designApi = {
   duplicateProject: (sourceName: string, targetName: string) =>
     invoke<ProjectSummary>("duplicate_project", { sourceName, targetName }),
   deleteProject: (name: string) => invoke<void>("delete_project", { name }),
+  openProjectFolder: (name: string) => invoke<void>("open_project_folder", { name }),
   setProjectVisibility: (name: string, visibleInPresentationMode: boolean) =>
     invoke<ProjectSummary>("set_project_visibility", {
       name,

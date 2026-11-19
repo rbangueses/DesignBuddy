@@ -10,6 +10,7 @@ vi.mock("../lib/designApi", () => ({
     renameProject: vi.fn(),
     duplicateProject: vi.fn(),
     deleteProject: vi.fn(),
+    openProjectFolder: vi.fn(),
     setProjectVisibility: vi.fn(),
     createDesign: vi.fn(),
     importDesign: vi.fn(),
@@ -42,6 +43,7 @@ describe("useDesignLibrary", () => {
     vi.mocked(designApi.renameProject).mockReset();
     vi.mocked(designApi.duplicateProject).mockReset();
     vi.mocked(designApi.deleteProject).mockReset();
+    vi.mocked(designApi.openProjectFolder).mockReset();
     vi.mocked(designApi.setProjectVisibility).mockReset();
     vi.mocked(designApi.createDesign).mockReset();
     vi.mocked(designApi.importDesign).mockReset();
@@ -577,6 +579,24 @@ describe("useDesignLibrary", () => {
 
     expect(designApi.duplicateProject).toHaveBeenCalledWith("App", "App Copy");
     await waitFor(() => expect(result.current.selectedProject).toBe("App Copy"));
+  });
+
+  it("opens only the requested project's local folder", async () => {
+    vi.mocked(designApi.listProjects).mockResolvedValueOnce([
+      { name: "App", designCount: 1 },
+    ]);
+    vi.mocked(designApi.listDesigns).mockResolvedValue([]);
+    vi.mocked(designApi.openProjectFolder).mockResolvedValue(undefined);
+
+    const { result } = renderHook(() => useDesignLibrary());
+
+    await waitFor(() => expect(result.current.selectedProject).toBe("App"));
+
+    await act(async () => {
+      await result.current.openProjectFolder("App");
+    });
+
+    expect(designApi.openProjectFolder).toHaveBeenCalledWith("App");
   });
 
   it("preserves the selected project when deleting a different project", async () => {

@@ -3,6 +3,7 @@ import {
   Copy,
   Eye,
   EyeOff,
+  FolderOpen,
   FolderPlus,
   MoreHorizontal,
   Pencil,
@@ -22,6 +23,7 @@ type ProjectSidebarProps = {
   onRenameProject: (project: string) => void;
   onDuplicateProject: (project: string) => void;
   onDeleteProject: (project: string) => void;
+  onOpenProjectFolder: (project: string) => void;
 };
 
 function isVisibleInPresentationMode(project: ProjectSummary) {
@@ -39,6 +41,7 @@ export function ProjectSidebar({
   onRenameProject,
   onDuplicateProject,
   onDeleteProject,
+  onOpenProjectFolder,
 }: ProjectSidebarProps) {
   const [projectFilter, setProjectFilter] = useState("");
   const [openProjectActions, setOpenProjectActions] = useState<string | null>(null);
@@ -167,6 +170,14 @@ export function ProjectSidebar({
               </button>
               {openProjectActions === project.name ? (
                 <div className="project-actions-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => runProjectAction(() => onOpenProjectFolder(project.name))}
+                  >
+                    <FolderOpen size={16} />
+                    Open folder
+                  </button>
                   <button
                     type="button"
                     role="menuitem"

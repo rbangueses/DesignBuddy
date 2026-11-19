@@ -5,6 +5,7 @@ use serde_json::Value;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::Manager;
 
@@ -106,6 +107,30 @@ fn duplicate_project(
 #[tauri::command]
 fn delete_project(app: tauri::AppHandle, name: String) -> Result<(), String> {
     designs::delete_project(&designs_root(&app)?, &name).map_err(|error| error.to_string())
+}
+
+fn reveal_in_file_manager(path: &Path) -> Result<(), String> {
+    #[cfg(target_os = "macos")]
+    let command = "open";
+    #[cfg(target_os = "windows")]
+    let command = "explorer.exe";
+    #[cfg(target_os = "linux")]
+    let command = "xdg-open";
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    return Err("Opening a project folder is not supported on this platform.".to_string());
+
+    Command::new(command)
+        .arg(path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|error| format!("Could not open project folder: {error}"))
+}
+
+#[tauri::command]
+fn open_project_folder(app: tauri::AppHandle, name: String) -> Result<(), String> {
+    let project_path = designs::project_directory(&designs_root(&app)?, &name)
+        .map_err(|error| error.to_string())?;
+    reveal_in_file_manager(&project_path)
 }
 
 #[tauri::command]
@@ -354,6 +379,7 @@ pub fn run() {
             rename_project,
             duplicate_project,
             delete_project,
+            open_project_folder,
             set_project_visibility,
             list_designs,
             create_design,
