@@ -1,4 +1,5 @@
 import { prepareSceneForStorage } from "./excalidrawScene";
+import { prepareAiScene } from "./aiSceneLayout";
 import { validateMermaidSource } from "./mermaidSource";
 import { isExcalidrawScene } from "./sceneValidation";
 import { getAiResponsesUrl, type AiQuality } from "./aiSettings";
@@ -30,6 +31,7 @@ type GenerateExcalidrawSceneInput = {
   diagnosticOperation?: AiDiagnosticOperation;
   prompt: string;
   systemPrompt?: string;
+  originalScene?: ExcalidrawScene;
   signal?: AbortSignal;
   timeoutMs?: number;
 };
@@ -107,6 +109,9 @@ const SYSTEM_PROMPT = [
   "Generate compact JSON with no unused fields and no explanatory prose.",
   "If the requested diagram is large, simplify the diagram instead of returning incomplete JSON.",
   "Prefer clear readable diagrams with labeled boxes, arrows, and spatial separation.",
+  "Keep all generated elements editable: set locked to false, including background containers and headings. Place backgrounds behind their contents.",
+  "Use readable text (18-24 px for node labels, at least 16 px for annotations). Preserve the reference font style when appropriate; otherwise prefer a clean sans-serif font (fontFamily 2).",
+  "Attach each node label to its box with matching text.containerId and box.boundElements. Leave at least 12 px of padding, wrap long labels onto multiple lines, and enlarge boxes instead of shrinking text. Keep sibling boxes separated by at least 24 px; grouped background regions may contain their children.",
   "When a reference image is attached, recreate its useful structure as editable elements; do not embed the image itself.",
   "Treat readable labels in a reference image as source-of-truth text: preserve them verbatim where possible. Never leave a visible box, ellipse, or node unlabeled; use a concise label from the user's request when text is unclear.",
   "Do not redraw, imitate, or invent company logos. Unless an actual logo asset is supplied, use a clean neutral brand badge with the company name instead.",
@@ -139,6 +144,8 @@ const MODIFY_SYSTEM_PROMPT = [
   'The root object must have type "excalidraw", an elements array, appState object, and files object.',
   "Preserve the user's existing diagram intent and style unless the instruction asks otherwise.",
   "Keep existing labels, colors, and layout where possible.",
+  "Preserve existing element IDs and user-chosen locks. Set locked to false for new elements, including background containers and headings.",
+  "Keep text readable. Wrap long node labels inside their boxes with padding instead of shrinking the font or overlapping other nodes. Maintain matching containerId and boundElements for box labels.",
   "If the requested change is large, simplify the update instead of returning incomplete JSON.",
 ].join("\n");
 
@@ -487,6 +494,7 @@ export async function generateExcalidrawScene({
   diagnosticOperation = "generate-excalidraw",
   prompt,
   systemPrompt = SYSTEM_PROMPT,
+  originalScene,
   signal,
   timeoutMs = DEFAULT_TIMEOUT_MS,
 }: GenerateExcalidrawSceneInput): Promise<ExcalidrawScene> {
@@ -577,10 +585,10 @@ export async function generateExcalidrawScene({
       throw new Error("OpenAI did not return a valid Excalidraw scene.");
     }
 
-    const preparedScene = prepareSceneForStorage({
+    const preparedScene = prepareSceneForStorage(await prepareAiScene({
       ...scene,
       elements: applyTwilioComponentTemplates(scene.elements),
-    });
+    }, originalScene));
     const componentIds = preparedScene.elements.flatMap((element) => {
       if (!element || typeof element !== "object") return [];
       const customData = (element as Record<string, unknown>).customData;
@@ -642,6 +650,7 @@ export function modifyExcalidrawScene({
     timeoutMs,
     systemPrompt: MODIFY_SYSTEM_PROMPT,
     diagnosticOperation: "modify-excalidraw",
+    originalScene: scene,
     prompt: [
       "Modify the existing scene using this instruction:",
       instruction,
@@ -876,9 +885,9 @@ export async function generateCleanArchitectureScene({
     referenceImage,
     diagnosticOperation: "generate-clean-architecture",
   });
-  return cleanArchitectureSpecToExcalidrawScene(
+  return prepareSceneForStorage(await prepareAiScene(cleanArchitectureSpecToExcalidrawScene(
     normalizeCleanArchitectureSpec(parseCleanArchitectureSpec(extractJsonObject(responseText))),
-  );
+  )));
 }
 
 export async function modifyMermaidFlowchart({

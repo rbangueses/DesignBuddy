@@ -11,7 +11,7 @@ const generatedScene = {
   type: "excalidraw",
   version: 2,
   source: "openai",
-  elements: [{ id: "box-1", type: "rectangle" }],
+  elements: [{ id: "box-1", type: "rectangle", locked: false }],
   appState: {},
   files: {},
 };

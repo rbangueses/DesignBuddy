@@ -71,21 +71,6 @@ function sanitizeAppStateForExcalidraw(appState: Record<string, unknown> | undef
   );
 }
 
-function estimateTextWidth(element: Record<string, unknown>) {
-  const rawText = element.originalText ?? element.text;
-
-  if (typeof rawText !== "string" || !rawText.trim()) {
-    return null;
-  }
-
-  const fontSize = typeof element.fontSize === "number" ? element.fontSize : 20;
-  const longestLineLength = rawText
-    .split("\n")
-    .reduce((longest, line) => Math.max(longest, line.length), 0);
-
-  return Math.max(70, Math.ceil(longestLineLength * fontSize * 0.65));
-}
-
 function normalizeElement(element: unknown) {
   if (!element || typeof element !== "object") {
     return element;
@@ -93,44 +78,9 @@ function normalizeElement(element: unknown) {
 
   const candidate = element as Record<string, unknown>;
   const { index: _index, ...withoutIndex } = candidate;
-
-  if (withoutIndex.type !== "text") {
-    return withoutIndex;
-  }
-
-  if (typeof withoutIndex.containerId === "string" && withoutIndex.containerId) {
-    return withoutIndex;
-  }
-
-  const estimatedWidth = estimateTextWidth(withoutIndex);
-
-  if (!estimatedWidth) {
-    return withoutIndex;
-  }
-
-  const currentWidth = typeof withoutIndex.width === "number" ? withoutIndex.width : 0;
-
-  if (currentWidth >= estimatedWidth) {
-    return withoutIndex;
-  }
-
-  const deltaWidth = estimatedWidth - currentWidth;
-  const currentX = typeof withoutIndex.x === "number" ? withoutIndex.x : null;
-  const textAlign = withoutIndex.textAlign;
-  const nextX =
-    currentX === null
-      ? undefined
-      : textAlign === "center"
-        ? currentX - deltaWidth / 2
-        : textAlign === "right"
-          ? currentX - deltaWidth
-          : undefined;
-
-  return {
-    ...withoutIndex,
-    ...(nextX === undefined ? {} : { x: nextX }),
-    width: estimatedWidth,
-  };
+  // Font/layout repair belongs to AI generation. Re-estimating on every save
+  // changes the bounds of correctly measured or deliberately wrapped user text.
+  return withoutIndex;
 }
 
 export function prepareSceneForStorage(scene: ExcalidrawScene): ExcalidrawScene {

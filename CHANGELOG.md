@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026-11-27 — 0.3.15
+
+- Improved AI diagram readability: long labels wrap inside their boxes with padding and readable font sizes, using actual font measurements when available.
+- Separate overlapping boxes in new AI diagrams, expanding their background regions and keeping connector endpoints aligned. AI edits retain the existing diagram layout.
+- Keep newly generated AI elements editable, including background containers and headings, while preserving existing user locks during AI edits.
+- Preserve user-chosen text positions and dimensions during normal saves and reopening instead of repeatedly estimating their width.
+
 ## 2026-11-19 — 0.3.14
 
 - Added **Open folder** to each project's actions menu. It opens that project's local directory directly in Finder or File Explorer.

@@ -33,7 +33,7 @@ describe("Excalidraw scene normalization", () => {
     expect(scene.appState).toEqual({ viewBackgroundColor: "#f8f9fa" });
   });
 
-  it("expands narrow text elements before opening generated scenes", () => {
+  it("preserves text dimensions when opening an existing scene", () => {
     const scene = prepareSceneForExcalidraw({
       type: "excalidraw",
       elements: [
@@ -50,12 +50,10 @@ describe("Excalidraw scene normalization", () => {
       files: {},
     });
 
-    expect(Number((scene.elements[0] as Record<string, unknown>).width)).toBeGreaterThan(
-      200,
-    );
+    expect(scene.elements[0]).toMatchObject({ width: 80, height: 24 });
   });
 
-  it("keeps centered unbound text visually centered when expanding its width", () => {
+  it("preserves the chosen position and width of unbound text on save", () => {
     const scene = prepareSceneForStorage({
       type: "excalidraw",
       elements: [
@@ -78,10 +76,7 @@ describe("Excalidraw scene normalization", () => {
 
     const label = scene.elements[0] as Record<string, unknown>;
 
-    expect(label.width).toBeGreaterThan(80);
-    expect(
-      Number(label.x) + Number(label.width) / 2,
-    ).toBeCloseTo(460);
+    expect(label).toMatchObject({ x: 420, y: 300, width: 80, height: 54 });
   });
 
   it("does not resize text bound to a container when saving or reopening", () => {

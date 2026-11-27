@@ -534,7 +534,7 @@ describe("LibraryView", () => {
         "excalidraw",
         expect.objectContaining({
           type: "excalidraw",
-          elements: [{ id: "one", type: "rectangle" }],
+          elements: [expect.objectContaining({ id: "one", type: "rectangle", locked: false })],
         }),
       ),
     );
